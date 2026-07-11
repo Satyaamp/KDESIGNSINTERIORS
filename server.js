@@ -9,6 +9,9 @@ const apiRoutes = require('./routes/api');
 
 const app = express();
 
+// Enable trust proxy for Render rate limiting compatibility
+app.set('trust proxy', 1);
+
 // Connect to Database
 connectDB();
 

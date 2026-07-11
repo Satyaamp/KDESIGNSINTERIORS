@@ -56,27 +56,103 @@ const createConsultation = async (req, res) => {
       images: imageUploads
     });
 
-    // Fetch settings for recipient email
+    // Fetch settings for recipient details
     const settings = await Settings.findOne();
     const recipientEmail = settings ? settings.contactEmail : 'kdesignsinteriors1@gmail.com';
+    const recipientPhone = settings ? settings.contactPhone : '+9163540798445';
 
     // Send email notification to admin
     const emailSubject = `New Consultation Booking from ${name}`;
-    const emailBody = `You have received a new consultation request:
-Name: ${name}
-Email: ${email}
-Phone: ${phone}
-City: ${city || 'Not specified'}
-Project Type: ${projectType || 'Not specified'}
-Project Size: ${projectSize || 'Not specified'} SQFT
-Budget: ${budget || 'Not specified'}
-Timeline: ${timeline || 'Not specified'}
-Message: ${message || 'None'}
-Floor Plan Link: ${floorPlanUpload.url || 'Not provided'}
-Reference Images: ${imageUploads.length ? imageUploads.map(img => img.url).join('\n') : 'None'}`;
+    const emailBody = `You have received a new consultation request:\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\nCity: ${city || 'Not specified'}\nProject Type: ${projectType || 'Not specified'}\nProject Size: ${projectSize || 'Not specified'} SQFT\nBudget: ${budget || 'Not specified'}\nTimeline: ${timeline || 'Not specified'}\nMessage: ${message || 'None'}\nFloor Plan Link: ${floorPlanUpload.url || 'Not provided'}\nReference Images: ${imageUploads.length ? imageUploads.map(img => img.url).join('\n') : 'None'}`;
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+        <div style="background-color: #1e1b18; padding: 24px; text-align: center; border-bottom: 2px solid #C5A880;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 18px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase;">New Consultation Request</h2>
+        </div>
+        <div style="padding: 24px; color: #374151; line-height: 1.6;">
+          <h3 style="color: #1e1b18; margin-top: 0; font-size: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">Client Details</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
+            <tr><td style="padding: 6px 0; font-weight: bold; width: 130px; color: #1e1b18;">Client Name:</td><td style="color: #4b5563;">${name}</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Email:</td><td style="color: #4b5563;"><a href="mailto:${email}" style="color: #C5A880; text-decoration: none;">${email}</a></td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Phone:</td><td style="color: #4b5563;"><a href="tel:${phone}" style="color: #C5A880; text-decoration: none;">${phone}</a></td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Location / City:</td><td style="color: #4b5563;">${city || 'Not specified'}</td></tr>
+          </table>
+
+          <h3 style="color: #1e1b18; margin-top: 0; font-size: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">Project Specifications</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
+            <tr><td style="padding: 6px 0; font-weight: bold; width: 130px; color: #1e1b18;">Project Type:</td><td style="color: #4b5563;">${projectType || 'Not specified'}</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Project Size:</td><td style="color: #4b5563;">${projectSize || 'Not specified'} SQFT</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Budget Limit:</td><td style="color: #4b5563;">${budget || 'Not specified'}</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Timeline:</td><td style="color: #4b5563;">${timeline || 'Not specified'}</td></tr>
+          </table>
+
+          <h3 style="color: #1e1b18; margin-top: 0; font-size: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">Client Message</h3>
+          <div style="background-color: #f9fafb; padding: 12px; border-radius: 6px; font-size: 14px; border: 1px solid #f3f4f6; color: #4b5563; margin-bottom: 20px;">
+            ${message || 'No additional message provided.'}
+          </div>
+
+          ${floorPlanUpload.url ? `
+            <h3 style="color: #1e1b18; margin-top: 0; font-size: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">Floor Plan Attachment</h3>
+            <div style="margin-bottom: 20px; text-align: center;">
+              <a href="${floorPlanUpload.url}" target="_blank">
+                <img src="${floorPlanUpload.url}" style="max-width: 100%; max-height: 200px; border-radius: 6px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              </a>
+              <span style="display: block; font-size: 12px; color: #9ca3af; margin-top: 4px;">Click image to view high-resolution</span>
+            </div>
+          ` : ''}
+
+          ${imageUploads.length ? `
+            <h3 style="color: #1e1b18; margin-top: 0; font-size: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">Reference Images (${imageUploads.length})</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+              ${imageUploads.map(img => `
+                <a href="${img.url}" target="_blank" style="display: inline-block;">
+                  <img src="${img.url}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                </a>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+        <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+          Generated automatically by K.DESIGNS & INTERIORS System Administration
+        </div>
+      </div>
+    `;
 
     try {
-      await sendMail(recipientEmail, emailSubject, emailBody);
+      // 1. Send email notification to admin
+      await sendMail(recipientEmail, emailSubject, emailBody, emailHtml);
+
+      // 2. Send premium confirmation email to customer/client
+      const customerSubject = `Consultation Booking Received - K.DESIGNS & INTERIORS`;
+      const customerHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+          <div style="background-color: #1e1b18; padding: 24px; text-align: center; border-bottom: 2px solid #C5A880;">
+            <h2 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px; font-weight: 600;">K.DESIGNS & INTERIORS</h2>
+          </div>
+          <div style="padding: 24px; color: #374151; line-height: 1.6;">
+            <h3 style="color: #1e1b18; margin-top: 0; font-size: 18px;">Thank You, ${name}!</h3>
+            <p>We have successfully received your request for a personalized interior design consultation. Our executive team will review your project requirements and reach out to you shortly.</p>
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            <h4 style="color: #C5A880; margin-bottom: 12px; font-size: 15px;">Your Booking Summary:</h4>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <tr><td style="padding: 6px 0; font-weight: bold; width: 120px; color: #1e1b18;">Project Type:</td><td style="color: #6b7280;">${projectType || 'Not specified'}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Size:</td><td style="color: #6b7280;">${projectSize || 'Not specified'} SQFT</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Budget:</td><td style="color: #6b7280;">${budget || 'Not specified'}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Timeline:</td><td style="color: #6b7280;">${timeline || 'Not specified'}</td></tr>
+            </table>
+            <div style="margin-top: 25px; padding: 15px; background-color: #f9fafb; border-radius: 6px; border-left: 3px solid #C5A880; font-size: 12px; color: #6b7280; line-height: 1.5; text-align: left;">
+              <strong style="color: #1e1b18; display: block; margin-bottom: 4px;">Automated Booking Confirmation</strong>
+              This is an automatic confirmation receipt. If you need any assistance or want to make changes, please feel free to reply directly to this email, contact us at <strong>${recipientEmail}</strong>, or call us at <strong>${recipientPhone}</strong>.
+            </div>
+          </div>
+          <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+            &copy; ${new Date().getFullYear()} K.DESIGNS & INTERIORS. All Rights Reserved.
+          </div>
+        </div>
+      `;
+      const customerText = `Dear ${name},\n\nThank you for booking a consultation with K.DESIGNS & INTERIORS!\nWe have received your request and will contact you shortly.\n\nProject Type: ${projectType || 'Not specified'}\nBudget: ${budget || 'Not specified'}\nTimeline: ${timeline || 'Not specified'}\n\nWarm regards,\nK.DESIGNS & INTERIORS`;
+
+      await sendMail(email, customerSubject, customerText, customerHtml);
     } catch (mailError) {
       console.error('SMTP Mail send failed:', mailError);
     }

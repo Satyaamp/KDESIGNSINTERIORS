@@ -13,6 +13,10 @@ const settingsSchema = new mongoose.Schema({
     type: String,
     default: 'kdesignsinteriors1@gmail.com'
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
   contactPhone: {
     type: String,
     default: '+9163540798445'

@@ -21,19 +21,75 @@ const createContact = async (req, res) => {
       message
     });
 
-    // Fetch settings for recipient email
+    // Fetch settings for recipient details
     const settings = await Settings.findOne();
     const recipientEmail = settings ? settings.contactEmail : 'kdesignsinteriors1@gmail.com';
+    const recipientPhone = settings ? settings.contactPhone : '+9163540798445';
 
     const emailSubject = `New Contact Form Inquiry: ${subject || 'General Inquiry'}`;
-    const emailBody = `You have received a new contact inquiry:
-Name: ${name}
-Email: ${email}
-Phone: ${phone || 'Not specified'}
-Subject: ${subject || 'General Inquiry'}
-Message: ${message}`;
+    const emailBody = `You have received a new contact inquiry:\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not specified'}\nSubject: ${subject || 'General Inquiry'}\nMessage: ${message}`;
 
-    await sendMail(recipientEmail, emailSubject, emailBody);
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+        <div style="background-color: #1e1b18; padding: 24px; text-align: center; border-bottom: 2px solid #C5A880;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 18px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase;">New Contact Inquiry</h2>
+        </div>
+        <div style="padding: 24px; color: #374151; line-height: 1.6;">
+          <h3 style="color: #1e1b18; margin-top: 0; font-size: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">Inquiry Details</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
+            <tr><td style="padding: 6px 0; font-weight: bold; width: 130px; color: #1e1b18;">Name:</td><td style="color: #4b5563;">${name}</td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Email:</td><td style="color: #4b5563;"><a href="mailto:${email}" style="color: #C5A880; text-decoration: none;">${email}</a></td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Phone:</td><td style="color: #4b5563;"><a href="tel:${phone || ''}" style="color: #C5A880; text-decoration: none;">${phone || 'Not specified'}</a></td></tr>
+            <tr><td style="padding: 6px 0; font-weight: bold; color: #1e1b18;">Subject:</td><td style="color: #4b5563;">${subject || 'General Inquiry'}</td></tr>
+          </table>
+
+          <h3 style="color: #1e1b18; margin-top: 0; font-size: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">Message Content</h3>
+          <div style="background-color: #f9fafb; padding: 16px; border-radius: 6px; font-size: 14px; border: 1px solid #f3f4f6; color: #4b5563;">
+            ${message}
+          </div>
+        </div>
+        <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+          Generated automatically by K.DESIGNS & INTERIORS System Administration
+        </div>
+      </div>
+    `;
+
+    try {
+      // 1. Send alert to admin
+      await sendMail(recipientEmail, emailSubject, emailBody, emailHtml);
+
+      // 2. Send email confirmation to the customer
+      const customerSubject = `Inquiry Received - K.DESIGNS & INTERIORS`;
+      const customerHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+          <div style="background-color: #1e1b18; padding: 24px; text-align: center; border-bottom: 2px solid #C5A880;">
+            <h2 style="color: #ffffff; margin: 0; font-size: 20px; letter-spacing: 1px; font-weight: 600;">K.DESIGNS & INTERIORS</h2>
+          </div>
+          <div style="padding: 24px; color: #374151; line-height: 1.6;">
+            <h3 style="color: #1e1b18; margin-top: 0; font-size: 18px;">Hello, ${name}!</h3>
+            <p>Thank you for reaching out to us. We have received your inquiry regarding "<strong>${subject || 'General Inquiry'}</strong>".</p>
+            <p>Our team is currently reviewing your message and will get back to you as soon as possible.</p>
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            <div style="background-color: #f9fafb; padding: 16px; border-radius: 6px; font-size: 14px; border: 1px solid #f3f4f6; color: #4b5563;">
+              <strong style="color: #1e1b18; display: block; margin-bottom: 8px;">Your Message Preview:</strong>
+              ${message}
+            </div>
+            <div style="margin-top: 25px; padding: 15px; background-color: #f9fafb; border-radius: 6px; border-left: 3px solid #C5A880; font-size: 12px; color: #6b7280; line-height: 1.5; text-align: left;">
+              <strong style="color: #1e1b18; display: block; margin-bottom: 4px;">Automated Inquiry Confirmation</strong>
+              This is an automatic confirmation receipt. If you need any assistance or want to add further details, please feel free to reply directly to this email, contact us at <strong>${recipientEmail}</strong>, or call us at <strong>${recipientPhone}</strong>.
+            </div>
+          </div>
+          <div style="background-color: #f9fafb; padding: 16px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
+            &copy; ${new Date().getFullYear()} K.DESIGNS & INTERIORS. All Rights Reserved.
+          </div>
+        </div>
+      `;
+      const customerText = `Dear ${name},\n\nThank you for reaching out to K.DESIGNS & INTERIORS!\nWe have received your message regarding: ${subject || 'General Inquiry'}.\nOur team will review your message and respond shortly.\n\nWarm regards,\nK.DESIGNS & INTERIORS`;
+
+      await sendMail(email, customerSubject, customerText, customerHtml);
+    } catch (mailError) {
+      console.error('SMTP Mail send failed:', mailError);
+    }
 
     res.status(201).json({
       success: true,

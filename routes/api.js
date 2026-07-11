@@ -94,6 +94,8 @@ router.delete('/contacts/:id', protect, checkPermission('contacts_delete'), cont
 // --- SETTINGS ROUTES ---
 router.get('/settings', settingController.getSettings);
 router.put('/settings', protect, checkPermission('settings_edit'), upload.single('logo'), settingController.updateSettings);
+router.post('/settings/send-otp', protect, checkPermission('settings_edit'), settingController.sendEmailVerificationOtp);
+router.post('/settings/verify-otp', protect, checkPermission('settings_edit'), settingController.verifyEmailVerificationOtp);
 
 // --- SERVING CITIES ROUTES ---
 router.get('/cities', cityController.getCities);

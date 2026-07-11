@@ -2427,6 +2427,9 @@ function loadContactsList() {
 
 // --- Website Settings Manager ---
 function initAdminSettings() {
+  let savedEmail = '';
+  let isEmailVerified = false;
+
   // Fetch current configs
   $.get('/api/settings', function(res) {
     if (res.success && res.settings) {
@@ -2434,6 +2437,10 @@ function initAdminSettings() {
       
       $('#siteName').val(settings.siteName);
       $('#contactEmail').val(settings.contactEmail);
+      savedEmail = settings.contactEmail || '';
+      isEmailVerified = settings.isEmailVerified === true;
+      updateEmailVerificationStatus(savedEmail);
+
       $('#contactPhone').val(settings.contactPhone);
       $('#whatsappNumber').val(settings.whatsappNumber);
       $('#address').val(settings.address);
@@ -2458,6 +2465,107 @@ function initAdminSettings() {
     }
   });
 
+  // Track email input changes
+  $('#contactEmail').on('input', function() {
+    const currentInputVal = $(this).val().trim();
+    updateEmailVerificationStatus(currentInputVal);
+  });
+
+  function updateEmailVerificationStatus(currentVal) {
+    const badge = $('#email-verification-badge');
+    const triggerBtn = $('#btn-trigger-email-otp');
+    
+    if (currentVal === savedEmail && isEmailVerified) {
+      badge.text('Verified').css({ 'background': '#DEF7EC', 'color': '#03543F' });
+      triggerBtn.hide();
+      $('#email-otp-verification-section').hide();
+    } else {
+      badge.text('Unverified').css({ 'background': '#FDE8E8', 'color': '#9B1C1C' });
+      triggerBtn.show();
+    }
+  }
+
+  // Trigger Send OTP click
+  $('#btn-trigger-email-otp').click(function(e) {
+    e.preventDefault();
+    const newEmail = $('#contactEmail').val().trim();
+    if (!newEmail || !newEmail.includes('@')) {
+      alert('Please enter a valid email address first.');
+      return;
+    }
+
+    const btn = $(this);
+    btn.prop('disabled', true).text('Sending OTP...');
+
+    $.ajax({
+      url: '/api/settings/send-otp',
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ email: newEmail }),
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+      },
+      success: function(res) {
+        btn.prop('disabled', false).text('Verify via OTP');
+        if (res.success) {
+          showToast('Verification OTP sent successfully!');
+          $('#email-otp-verification-section').show();
+          $('#email-verification-otp-code').val('').focus();
+        }
+      },
+      error: function(err) {
+        btn.prop('disabled', false).text('Verify via OTP');
+        alert(err.responseJSON?.message || 'Failed to send OTP. Please check your SMTP settings.');
+      }
+    });
+  });
+
+  // Confirm OTP code
+  $('#btn-submit-email-otp').click(function(e) {
+    e.preventDefault();
+    const newEmail = $('#contactEmail').val().trim();
+    const otpCode = $('#email-verification-otp-code').val().trim();
+
+    if (!otpCode || otpCode.length !== 6) {
+      alert('Please enter a valid 6-digit OTP.');
+      return;
+    }
+
+    const btn = $(this);
+    btn.prop('disabled', true).text('Confirming...');
+
+    $.ajax({
+      url: '/api/settings/verify-otp',
+      method: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ email: newEmail, otp: otpCode }),
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+      },
+      success: function(res) {
+        btn.prop('disabled', false).text('Confirm');
+        if (res.success) {
+          showToast('Email verified and updated successfully!');
+          savedEmail = newEmail;
+          isEmailVerified = true;
+          updateEmailVerificationStatus(newEmail);
+          $('#email-otp-verification-section').hide();
+          $('#btn-trigger-email-otp').hide();
+        }
+      },
+      error: function(err) {
+        btn.prop('disabled', false).text('Confirm');
+        alert(err.responseJSON?.message || 'Verification failed. Incorrect or expired OTP.');
+      }
+    });
+  });
+
+  // Cancel OTP verification
+  $('#btn-cancel-email-otp').click(function(e) {
+    e.preventDefault();
+    $('#email-otp-verification-section').hide();
+  });
+
   // Validate site logo format
   $('#logo').change(function() {
     const file = this.files[0];
@@ -2474,6 +2582,13 @@ function initAdminSettings() {
   // Submit edits
   $('#settings-form').submit(function(e) {
     e.preventDefault();
+
+    // Check if email is verified
+    if ($('#email-verification-badge').text() === 'Unverified') {
+      alert('Please verify your new email address via OTP first, or revert it back to the original verified email.');
+      return;
+    }
+
     const formData = new FormData(this);
 
     // Map social fields to correct payload names

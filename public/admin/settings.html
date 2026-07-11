@@ -75,8 +75,19 @@
           <h3 style="margin: 30px 0 20px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Office Contact Points</h3>
           <div class="admin-form-row">
             <div class="admin-form-group">
-              <label for="contactEmail">Public Email Address *</label>
-              <input type="email" class="admin-form-control" id="contactEmail" name="contactEmail" required>
+              <label for="contactEmail">Public Email Address * <span id="email-verification-badge" style="margin-left: 8px; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: #DEF7EC; color: #03543F;">Verified</span></label>
+              <div style="display: flex; gap: 10px;">
+                <input type="email" class="admin-form-control" id="contactEmail" name="contactEmail" required style="flex: 1;">
+                <button type="button" id="btn-trigger-email-otp" class="btn-secondary" style="white-space: nowrap; font-size: 0.85rem; padding: 0 12px; height: 42px; border-radius: 6px; display: none;">Verify via OTP</button>
+              </div>
+              <div id="email-otp-verification-section" style="display: none; margin-top: 10px; background: var(--admin-bg); border: 1px solid var(--border); padding: 12px; border-radius: 6px;">
+                <p style="font-size: 0.8rem; margin: 0 0 8px; color: var(--text-gray);">Enter the 6-digit OTP sent to your new email:</p>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <input type="text" id="email-verification-otp-code" class="admin-form-control" placeholder="6-Digit Code" style="max-width: 150px; text-align: center; font-weight: bold; letter-spacing: 2px;" maxlength="6">
+                  <button type="button" id="btn-submit-email-otp" class="btn-primary" style="height: 42px; padding: 0 16px; border-radius: 6px;">Confirm</button>
+                  <button type="button" id="btn-cancel-email-otp" class="btn-secondary" style="height: 42px; padding: 0 12px; border-radius: 6px;">Cancel</button>
+                </div>
+              </div>
             </div>
             
             <div class="admin-form-group">

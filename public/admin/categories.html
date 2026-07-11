@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Category Manager | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .tab-btn {
+      background: #eef2f5;
+      color: #555;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 10px 20px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    .tab-btn:hover {
+      background: #e2e8f0;
+      color: #333;
+    }
+    .tab-btn.active {
+      background: var(--text-dark) !important;
+      color: var(--white) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-palette"></i>
+      <span>K.DESIGNS Panel</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/admin/dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+      <li><a href="/admin/services"><i class="fas fa-concierge-bell"></i> Services</a></li>
+      <li><a href="/admin/projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+      <li class="active"><a href="/admin/categories"><i class="fas fa-database"></i> Master</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-blog"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-comment-alt"></i> Testimonials</a></li>
+      <li><a href="/admin/team"><i class="fas fa-users"></i> Team Members</a></li>
+      <li><a href="/admin/consultations"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-envelope-open-text"></i> Inquiries</a></li>
+      <li class="super-only"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+      <li><a href="/admin/settings"><i class="fas fa-cogs"></i> System Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="#" class="logout-btn" id="admin-logout"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>Master Management</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      
+      <!-- Tabs Navigation -->
+      <div class="admin-tabs" style="display: flex; gap: 10px; margin-bottom: 25px;">
+        <button class="tab-btn active" data-tab="categories">Category Manager</button>
+        <button class="tab-btn" data-tab="cities">Serving Cities</button>
+      </div>
+
+      <!-- Tab Content: Categories -->
+      <div class="tab-pane active" id="tab-categories">
+        <div class="admin-form-row">
+          
+          <!-- Project Categories Column -->
+          <div class="data-card">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <h2>Project Categories</h2>
+              <button class="btn-admin btn-admin-primary" id="btn-add-project-cat"><i class="fas fa-plus"></i> Add Category</button>
+            </div>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Category Name</th>
+                    <th>Status</th>
+                    <th style="width:100px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="project-cats-table-body">
+                  <tr>
+                    <td colspan="3" class="text-center">Loading project categories...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Blog Categories Column -->
+          <div class="data-card">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <h2>Blog Categories</h2>
+              <button class="btn-admin btn-admin-primary" id="btn-add-blog-cat"><i class="fas fa-plus"></i> Add Category</button>
+            </div>
+            <div class="admin-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Category Name</th>
+                    <th>Status</th>
+                    <th style="width:100px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="blog-cats-table-body">
+                  <tr>
+                    <td colspan="3" class="text-center">Loading blog categories...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tab Content: Serving Cities -->
+      <div class="tab-pane" id="tab-cities" style="display: none;">
+        <!-- Serving Cities Section -->
+        <div class="data-card" style="width: 100%;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Serving Cities / Regions</h2>
+            <button class="btn-admin btn-admin-primary" id="btn-add-city"><i class="fas fa-plus"></i> Add Serving City</button>
+          </div>
+          <div class="admin-table-container">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>City / Region Name</th>
+                  <th>Status</th>
+                  <th style="width:100px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="cities-table-body">
+                <tr>
+                  <td colspan="3" class="text-center">Loading serving cities...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Project Category Modal -->
+  <div class="admin-modal" id="project-cat-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="project-cat-modal-title">Add Project Category</h3>
+        <button class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="project-cat-form">
+        <div class="modal-body">
+          <div class="admin-form-group">
+            <label for="project-cat-name">Category Name *</label>
+            <input type="text" class="admin-form-control" id="project-cat-name" name="name" required placeholder="e.g. Residential, Commercial">
+          </div>
+          <div class="admin-form-group">
+            <label for="project-cat-status">Status</label>
+            <select class="admin-form-control" id="project-cat-status" name="status">
+              <option value="Active">Active</option>
+              <option value="Inactive">Disabled</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-outline" id="btn-cancel-project-cat">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Blog Category Modal -->
+  <div class="admin-modal" id="blog-cat-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="blog-cat-modal-title">Add Blog Category</h3>
+        <button class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="blog-cat-form">
+        <div class="modal-body">
+          <div class="admin-form-group">
+            <label for="blog-cat-name">Category Name *</label>
+            <input type="text" class="admin-form-control" id="blog-cat-name" name="name" required placeholder="e.g. Interior Design Tips, Architecture Trends">
+          </div>
+          <div class="admin-form-group">
+            <label for="blog-cat-status">Status</label>
+            <select class="admin-form-control" id="blog-cat-status" name="status">
+              <option value="Active">Active</option>
+              <option value="Inactive">Disabled</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-outline" id="btn-cancel-blog-cat">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Serving City Modal -->
+  <div class="admin-modal" id="city-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="city-modal-title">Add Serving City</h3>
+        <button class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="city-form">
+        <div class="modal-body">
+          <div class="admin-form-group">
+            <label for="city-name">City / Region Name *</label>
+            <input type="text" class="admin-form-control" id="city-name" name="name" required placeholder="e.g. GANDHIDHAM, BHUJ">
+          </div>
+          <div class="admin-form-group">
+            <label for="city-status">Status</label>
+            <select class="admin-form-control" id="city-status" name="status">
+              <option value="Active">Active</option>
+              <option value="Inactive">Disabled</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-outline" id="btn-cancel-city">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save City</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

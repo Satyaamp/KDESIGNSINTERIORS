@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Management | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-palette"></i>
+      <span>K.DESIGNS Panel</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/admin/dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+      <li><a href="/admin/services"><i class="fas fa-concierge-bell"></i> Services</a></li>
+      <li><a href="/admin/projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+      <li><a href="/admin/categories"><i class="fas fa-tags"></i> Categories</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-blog"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-comment-alt"></i> Testimonials</a></li>
+      <li class="active"><a href="/admin/team"><i class="fas fa-users"></i> Team Members</a></li>
+      <li><a href="/admin/consultations"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-envelope-open-text"></i> Inquiries</a></li>
+      <li class="super-only"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+      <li><a href="/admin/settings"><i class="fas fa-cogs"></i> System Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="#" class="logout-btn" id="admin-logout"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>Team Members Management</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      <div class="data-card">
+        <div class="card-header">
+          <h2>All Members</h2>
+          <div class="card-actions">
+            <button class="btn-admin btn-admin-primary" id="btn-add-team">
+              <i class="fas fa-plus"></i> Add Team Member
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Photo</th>
+                <th>Name</th>
+                <th>Designation</th>
+                <th style="width: 150px;">Status</th>
+                <th style="width: 120px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="team-table-body">
+              <tr>
+                <td colspan="5" class="text-center">Loading team members...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Team Member Modal -->
+  <div class="admin-modal" id="team-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="team-modal-title">Add Team Member</h3>
+        <button class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      
+      <form id="team-form" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="admin-form-group">
+            <label for="team-name">Member Name *</label>
+            <input type="text" class="admin-form-control" id="team-name" name="name" required placeholder="e.g. Architect Rajesh Patel">
+          </div>
+
+          <div class="admin-form-group">
+            <label for="team-designation">Designation *</label>
+            <input type="text" class="admin-form-control" id="team-designation" name="designation" required placeholder="e.g. Chief Structural Designer">
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="team-status">Status</label>
+              <select class="admin-form-control" id="team-status" name="status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label for="team-image">Profile Photo</label>
+              <input type="file" class="admin-form-control" id="team-image" name="image" accept="image/png, image/jpeg, image/jpg, image/webp">
+            </div>
+          </div>
+
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+          <h4 style="margin-bottom: 15px; font-weight:600;">Social Profiles</h4>
+
+          <div class="admin-form-group">
+            <label for="team-facebook">Facebook Link</label>
+            <input type="text" class="admin-form-control" id="team-facebook" name="facebook" placeholder="https://facebook.com/...">
+          </div>
+
+          <div class="admin-form-group">
+            <label for="team-instagram">Instagram Link</label>
+            <input type="text" class="admin-form-control" id="team-instagram" name="instagram" placeholder="https://instagram.com/...">
+          </div>
+
+          <div class="admin-form-group">
+            <label for="team-linkedin">LinkedIn Link</label>
+            <input type="text" class="admin-form-control" id="team-linkedin" name="linkedin" placeholder="https://linkedin.com/in/...">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-outline" id="btn-cancel-team">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

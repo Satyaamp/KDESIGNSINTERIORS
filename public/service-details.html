@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Details | K.DESIGNS & INTERIORS</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .service-detail-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 50px;
+      margin-top: 30px;
+      align-items: flex-start;
+    }
+    .service-detail-grid.no-image {
+      grid-template-columns: 1fr !important;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    @media (max-width: 991px) {
+      .service-detail-grid {
+        grid-template-columns: 1fr !important;
+        gap: 35px;
+      }
+    }
+    .service-image-wrapper {
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.06);
+      border: 1px solid #eaeaea;
+      position: sticky;
+      top: 40px;
+    }
+    .service-image-wrapper img {
+      width: 100%;
+      height: auto;
+      max-height: 580px;
+      object-fit: cover;
+      display: block;
+    }
+    .service-details-content {
+      padding: 10px 0;
+    }
+    .service-badge {
+      display: inline-block;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent-dark);
+      background: var(--accent-light);
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .service-main-title {
+      font-size: 2.6rem;
+      color: var(--primary);
+      margin-top: 0;
+      margin-bottom: 25px;
+      line-height: 1.2;
+    }
+    .service-desc-paragraphs p {
+      font-size: 1.15rem;
+      line-height: 1.95;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      text-align: justify;
+      text-justify: inter-word;
+    }
+    .service-features-list {
+      list-style: none;
+      padding: 0;
+      margin: 35px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      border-top: 1px solid #eaeaea;
+      border-bottom: 1px solid #eaeaea;
+      padding: 25px 0;
+    }
+    @media (max-width: 480px) {
+      .service-features-list {
+        grid-template-columns: 1fr;
+      }
+    }
+    .service-features-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      color: var(--primary);
+      font-weight: 500;
+    }
+    .service-features-list li i {
+      color: var(--accent-dark);
+      font-size: 1.1rem;
+    }
+    .service-cta-card {
+      background: #fdfcfb;
+      border: 1px solid #f3efea;
+      padding: 30px;
+      border-radius: 16px;
+      margin-top: 40px;
+    }
+    .service-cta-card h4 {
+      font-size: 1.25rem;
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+    .service-cta-card p {
+      font-size: 0.95rem;
+      color: var(--text-gray);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <a href="/" class="logo logo-container">
+        <span class="site-title-text">K.DESIGNS & INTERIORS</span>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/services" class="active">Services</a>
+        <a href="/portfolio">Portfolio</a>
+        <a href="/blogs">Blogs</a>
+        <a href="/contact">Contact</a>
+      </nav>
+      <div class="header-cta">
+        <a href="/consultation" class="btn btn-primary">Book Consultation</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1 id="service-title">Service Details</h1>
+      <div class="breadcrumbs">
+        <a href="/">Home</a> / <a href="/services">Services</a> / <span class="service-title-placeholder">Details</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Service Details Content -->
+  <section class="section" style="padding: 60px 0; background-color: #faf9f6;">
+    <div class="container">
+      
+      <div class="service-detail-grid">
+        
+        <!-- Left Column: Image wrapper / Gallery Slider -->
+        <div class="service-image-wrapper" id="service-image-container" style="display:none; position:relative; overflow:hidden;">
+          <!-- Slider Track -->
+          <div id="service-slider-track" style="display:flex; width:100%; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);">
+            <!-- Images loaded dynamically by main.js -->
+          </div>
+          <!-- Left/Right Nav Arrows (only shown if > 1 image) -->
+          <button id="btn-service-prev" type="button" style="position:absolute; top:50%; left:15px; transform:translateY(-50%); background:rgba(255,255,255,0.85); color:var(--primary); border:none; width:36px; height:36px; border-radius:50%; display:none; align-items:center; justify-content:center; cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: background 0.3s; z-index:10; font-size:12px;"><i class="fas fa-chevron-left"></i></button>
+          <button id="btn-service-next" type="button" style="position:absolute; top:50%; right:15px; transform:translateY(-50%); background:rgba(255,255,255,0.85); color:var(--primary); border:none; width:36px; height:36px; border-radius:50%; display:none; align-items:center; justify-content:center; cursor:pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: background 0.3s; z-index:10; font-size:12px;"><i class="fas fa-chevron-right"></i></button>
+          <!-- Dots indicators -->
+          <div id="service-slider-dots" style="position:absolute; bottom:20px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:10;">
+            <!-- Dots loaded dynamically -->
+          </div>
+        </div>
+        
+        <!-- Right Column: Content wrapper -->
+        <div class="service-details-content">
+          <span class="service-badge">Expert Design Service</span>
+          <h1 class="service-main-title service-title-placeholder">Service Name</h1>
+          
+          <div id="service-description-body" class="service-desc-paragraphs">
+            <p>Loading service description...</p>
+          </div>
+          
+
+          <div class="service-cta-card">
+            <h4>Ready to design your landmark space?</h4>
+            <p>Schedule a one-on-one consultation with our expert architects and designers today.</p>
+            <div style="display:flex; gap:15px; flex-wrap:wrap;">
+              <a href="/consultation" class="btn btn-accent">Book Consultation <i class="fas fa-calendar-check" style="margin-left:8px;"></i></a>
+              <a href="/services" class="btn btn-secondary"><i class="fas fa-arrow-left" style="margin-right:8px;"></i> All Services</a>
+            </div>
+          </div>
+          
+        </div>
+        
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="/" class="logo logo-container" style="color:var(--white); margin-bottom: 25px; display:inline-block;">
+            <span class="site-title-text">K.DESIGNS & INTERIORS</span>
+          </a>
+          <p>A premier architecture and commercial styling bureau building status landmarks across Adipur, Bhuj, Gandhidham, Ahmedabad, Surat, and Rajkot.</p>
+        </div>
+        <div class="footer-col">
+          <h3>Quick Links</h3>
+          <ul class="footer-links">
+            <li><a href="/about">About Studio</a></li>
+            <li><a href="/services">Our Services</a></li>
+            <li><a href="/portfolio">Portfolio Gallery</a></li>
+            <li><a href="/blogs">Blog Updates</a></li>
+            <li><a href="/consultation">Book Consult</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Service Areas</h3>
+          <ul class="footer-links">
+            <li><a href="/portfolio">Gandhidham & Adipur</a></li>
+            <li><a href="/portfolio">Bhuj & Kutch</a></li>
+            <li><a href="/portfolio">Rajkot & Upleta</a></li>
+            <li><a href="/portfolio">Ahmedabad & Vadodara</a></li>
+            <li><a href="/portfolio">Surat Area</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Contact Details</h3>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-phone-alt"></i></div>
+            <p style="margin-bottom:0;"><a href="#" class="contact-phone-text">+91 98765 43210</a></p>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+            <p style="margin-bottom:0;"><a href="#" class="contact-email-text">info@kdesigns.com</a></p>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <p style="margin-bottom:0;" class="contact-address-text">Gandhidham, Kutch, Gujarat</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 K.DESIGNS & INTERIORS. All Rights Reserved.</p>
+        <div class="footer-policy-links">
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms">Terms & Conditions</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

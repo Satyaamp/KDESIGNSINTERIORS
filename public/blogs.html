@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blogs & Articles | K.DESIGNS & INTERIORS</title>
+  <meta name="description" content="Read design insights, home decor guidelines, space arrangement trends, and materials reviews on our blog.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <a href="/" class="logo logo-container">
+        <span class="site-title-text">K.DESIGNS & INTERIORS</span>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/services">Services</a>
+        <a href="/portfolio">Portfolio</a>
+        <a href="/blogs" class="active">Blogs</a>
+        <a href="/contact">Contact</a>
+      </nav>
+      <div class="header-cta">
+        <a href="/consultation" class="btn btn-primary">Book Consultation</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>Our Design Journal</h1>
+      <div class="breadcrumbs">
+        <a href="/">Home</a> / <span>Blogs & Insights</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Blogs Grid Section -->
+  <section class="section">
+    <div class="container">
+      <!-- Blog Category Filters loaded dynamically -->
+      <div class="portfolio-filters" id="blog-filters" style="margin-bottom: 40px; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+        <button class="filter-btn active" data-filter="all">All Articles</button>
+      </div>
+
+      <div class="blogs-grid" id="all-blogs-grid">
+        <!-- Loaded dynamically by main.js -->
+        <div class="text-center" style="grid-column: 1/-1;">Loading Blogs...</div>
+      </div>
+
+      <!-- Load More Button -->
+      <div style="text-align: center; margin-top: 50px; display: none;" id="blogs-load-more-container">
+        <button id="btn-blogs-load-more" class="btn btn-accent">Load More Articles <i class="fas fa-redo-alt" style="margin-left: 8px;"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="/" class="logo logo-container" style="color:var(--white); margin-bottom: 25px; display:inline-block;">
+            <span class="site-title-text">K.DESIGNS & INTERIORS</span>
+          </a>
+          <p>A premier architecture and commercial styling bureau building status landmarks across Adipur, Bhuj, Gandhidham, Ahmedabad, Surat, and Rajkot.</p>
+        </div>
+        <div class="footer-col">
+          <h3>Quick Links</h3>
+          <ul class="footer-links">
+            <li><a href="/about">About Studio</a></li>
+            <li><a href="/services">Our Services</a></li>
+            <li><a href="/portfolio">Portfolio Gallery</a></li>
+            <li><a href="/blogs">Blog Updates</a></li>
+            <li><a href="/consultation">Book Consult</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Service Areas</h3>
+          <ul class="footer-links">
+            <li><a href="/portfolio">Gandhidham & Adipur</a></li>
+            <li><a href="/portfolio">Bhuj & Kutch</a></li>
+            <li><a href="/portfolio">Rajkot & Upleta</a></li>
+            <li><a href="/portfolio">Ahmedabad & Vadodara</a></li>
+            <li><a href="/portfolio">Surat Area</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Contact Details</h3>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-phone-alt"></i></div>
+            <p style="margin-bottom:0;"><a href="#" class="contact-phone-text">+91 98765 43210</a></p>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+            <p style="margin-bottom:0;"><a href="#" class="contact-email-text">info@kdesigns.com</a></p>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <p style="margin-bottom:0;" class="contact-address-text">Gandhidham, Kutch, Gujarat</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 K.DESIGNS & INTERIORS. All Rights Reserved.</p>
+        <div class="footer-policy-links">
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms">Terms & Conditions</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

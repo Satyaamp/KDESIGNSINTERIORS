@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Consultation | K.DESIGNS & INTERIORS</title>
+  <meta name="description" content="Schedule a space planning consultation with our architects and interior designers in Gandhidham.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <a href="/" class="logo logo-container">
+        <span class="site-title-text">K.DESIGNS & INTERIORS</span>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/services">Services</a>
+        <a href="/portfolio">Portfolio</a>
+        <a href="/blogs">Blogs</a>
+        <a href="/contact">Contact</a>
+      </nav>
+      <div class="header-cta">
+        <a href="/consultation" class="btn btn-primary active">Book Consultation</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Header -->
+  <section class="page-header">
+    <div class="container">
+      <h1>Consultation Booking</h1>
+      <div class="breadcrumbs">
+        <a href="/">Home</a> / <span>Book Consultation</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Form Block -->
+  <section class="section">
+    <div class="container" style="max-width: 650px;">
+      <div class="contact-form" style="padding: 40px; box-shadow: var(--shadow-lg);">
+        <h2 style="font-size:1.8rem; margin-bottom: 10px; font-family: var(--font-serif); text-align:center;">Schedule Your Appointment</h2>
+        <p style="color:var(--text-secondary); font-size:0.9rem; text-align:center; margin-bottom:30px;">
+          Choose a preferred date and time, and our design team will connect with you shortly.
+        </p>
+        
+        <form id="consultation-form" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="c_name" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Full Name *</label>
+            <input type="text" class="form-control" id="c_name" required placeholder="Enter your full name">
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="c_email" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Email Address *</label>
+              <input type="email" class="form-control" id="c_email" required placeholder="Enter email address">
+            </div>
+            <div class="form-group">
+              <label for="c_phone" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Mobile Number *</label>
+              <input type="text" class="form-control" id="c_phone" required placeholder="Mobile number">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="c_city" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Your City *</label>
+              <select class="form-control" id="c_city" required style="border:none; border-bottom:1px solid var(--border); padding: 15px 0;">
+                <option value="">Select City</option>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="c_projectType" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Project Type *</label>
+              <select class="form-control" id="c_projectType" required style="border:none; border-bottom:1px solid var(--border); padding: 15px 0;">
+                <option value="Residential Interior">Residential Interior</option>
+                <option value="Commercial Styling">Commercial Styling</option>
+                <option value="Villa Architecture">Villa Architecture</option>
+                <option value="Turnkey Execution">Turnkey Execution</option>
+                <option value="Landscape Design">Landscape Design</option>
+                <option value="Office Design">Office Design</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="c_projectSize" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Project Size (SQFT) *</label>
+              <input type="number" class="form-control" id="c_projectSize" required placeholder="e.g. 1500">
+            </div>
+            <div class="form-group">
+              <label for="c_budget" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Estimated Budget *</label>
+              <input type="text" class="form-control" id="c_budget" required placeholder="e.g. 15-20 Lakhs">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="c_timeline" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Timeline *</label>
+            <select class="form-control" id="c_timeline" required style="border:none; border-bottom:1px solid var(--border); padding: 15px 0;">
+              <option value="Immediately">Immediately</option>
+              <option value="Within 1-3 Months">Within 1-3 Months</option>
+              <option value="Within 3-6 Months">Within 3-6 Months</option>
+              <option value="Just Exploring">Just Exploring</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="c_message" style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Requirement Details *</label>
+            <textarea class="form-control" id="c_message" required placeholder="Describe details (e.g. 3BHK flat interior design, full modular kitchen)..."></textarea>
+          </div>
+
+          <div class="form-row" style="margin-top: 15px;">
+            <div class="form-group">
+              <label style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Floor Plan (PDF/Image)</label>
+              <label for="c_floorPlan" class="file-uploader-box" style="border: 2px dashed #ccc; padding: 20px; border-radius: 8px; text-align: center; background: #fafafa; cursor: pointer; transition: border-color 0.2s; display: block;">
+                <i class="fas fa-file-upload" style="font-size: 24px; color: #888; margin-bottom: 8px;"></i>
+                <div style="font-size: 13px; font-weight: 500; color: #555;" id="fp-upload-text">Click to upload plan</div>
+                <div style="font-size: 11px; color: #888; margin-top: 3px;">Accepts image or PDF</div>
+              </label>
+              <input type="file" id="c_floorPlan" accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf" style="display: none;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.85rem; font-weight:600; text-transform:uppercase; margin-bottom:5px; display:block;">Reference Images (Upto 5)</label>
+              <label for="c_images" class="file-uploader-box" style="border: 2px dashed #ccc; padding: 20px; border-radius: 8px; text-align: center; background: #fafafa; cursor: pointer; transition: border-color 0.2s; display: block;">
+                <i class="fas fa-images" style="font-size: 24px; color: #888; margin-bottom: 8px;"></i>
+                <div style="font-size: 13px; font-weight: 500; color: #555;">Click to add images</div>
+                <div style="font-size: 11px; color: #888; margin-top: 3px;">Select files to queue</div>
+              </label>
+              <input type="file" id="c_images" accept="image/png, image/jpeg, image/jpg, image/webp" multiple style="display: none;">
+              <!-- Visual preview list -->
+              <div id="selected-images-preview" style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;"></div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary submit-btn" style="width:100%; margin-top:20px; font-weight:600;">Request Consultation</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="/" class="logo logo-container" style="color:var(--white); margin-bottom: 25px; display:inline-block;">
+            <span class="site-title-text">K.DESIGNS & INTERIORS</span>
+          </a>
+          <p>A premier architecture and commercial styling bureau building status landmarks across Adipur, Bhuj, Gandhidham, Ahmedabad, Surat, and Rajkot.</p>
+        </div>
+        <div class="footer-col">
+          <h3>Quick Links</h3>
+          <ul class="footer-links">
+            <li><a href="/about">About Studio</a></li>
+            <li><a href="/services">Our Services</a></li>
+            <li><a href="/portfolio">Portfolio Gallery</a></li>
+            <li><a href="/blogs">Blog Updates</a></li>
+            <li><a href="/consultation">Book Consult</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Service Areas</h3>
+          <ul class="footer-links">
+            <li><a href="/portfolio">Gandhidham & Adipur</a></li>
+            <li><a href="/portfolio">Bhuj & Kutch</a></li>
+            <li><a href="/portfolio">Rajkot & Upleta</a></li>
+            <li><a href="/portfolio">Ahmedabad & Vadodara</a></li>
+            <li><a href="/portfolio">Surat Area</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Contact Details</h3>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-phone-alt"></i></div>
+            <p style="margin-bottom:0;"><a href="#" class="contact-phone-text">+91 98765 43210</a></p>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+            <p style="margin-bottom:0;"><a href="#" class="contact-email-text">info@kdesigns.com</a></p>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <p style="margin-bottom:0;" class="contact-address-text">Gandhidham, Kutch, Gujarat</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 K.DESIGNS & INTERIORS. All Rights Reserved.</p>
+        <div class="footer-policy-links">
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms">Terms & Conditions</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

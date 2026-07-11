@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultations Bookings | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-palette"></i>
+      <span>K.DESIGNS Panel</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/admin/dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+      <li><a href="/admin/services"><i class="fas fa-concierge-bell"></i> Services</a></li>
+      <li><a href="/admin/projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+      <li><a href="/admin/categories"><i class="fas fa-tags"></i> Categories</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-blog"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-comment-alt"></i> Testimonials</a></li>
+      <li><a href="/admin/team"><i class="fas fa-users"></i> Team Members</a></li>
+      <li class="active"><a href="/admin/consultations"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-envelope-open-text"></i> Inquiries</a></li>
+      <li class="super-only"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+      <li><a href="/admin/settings"><i class="fas fa-cogs"></i> System Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="#" class="logout-btn" id="admin-logout"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>Consultation Booking Requests</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      <div class="data-card">
+        <div class="card-header">
+          <h2>Appointment Requests</h2>
+        </div>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Contact Info</th>
+                <th>Preferred Details</th>
+                <th style="width: 150px;">Status</th>
+                <th style="width: 80px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="consultations-table-body">
+              <tr>
+                <td colspan="5" class="text-center">Loading booking requests...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

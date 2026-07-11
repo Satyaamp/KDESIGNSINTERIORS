@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projects Management | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-palette"></i>
+      <span>K.DESIGNS Panel</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/admin/dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+      <li><a href="/admin/services"><i class="fas fa-concierge-bell"></i> Services</a></li>
+      <li class="active"><a href="/admin/projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+      <li><a href="/admin/categories"><i class="fas fa-tags"></i> Categories</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-blog"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-comment-alt"></i> Testimonials</a></li>
+      <li><a href="/admin/team"><i class="fas fa-users"></i> Team Members</a></li>
+      <li><a href="/admin/consultations"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-envelope-open-text"></i> Inquiries</a></li>
+      <li class="super-only"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+      <li><a href="/admin/settings"><i class="fas fa-cogs"></i> System Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="#" class="logout-btn" id="admin-logout"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>Projects Management</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      <div class="data-card">
+        <div class="card-header">
+          <h2>All Portfolio Projects</h2>
+          <div class="card-actions">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="search-projects" placeholder="Search projects...">
+            </div>
+            <button class="btn-admin btn-admin-primary" id="btn-add-project">
+              <i class="fas fa-plus"></i> Add Project
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">Cover</th>
+                <th>Project Name</th>
+                <th>Category</th>
+                <th style="width: 150px;">Status</th>
+                <th style="width: 120px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="projects-table-body">
+              <tr>
+                <td colspan="5" class="text-center">Loading projects...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Project Modal -->
+  <div class="admin-modal" id="project-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="project-modal-title">Add Project</h3>
+        <button class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      
+      <form id="project-form" enctype="multipart/form-data">
+        <div class="modal-body">
+          <div class="admin-form-group">
+            <label for="project-title">Project Name *</label>
+            <input type="text" class="admin-form-control" id="project-title" name="title" required placeholder="e.g. Luxury Beach Villa">
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="project-category">Category *</label>
+              <select class="admin-form-control" id="project-category" name="category" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label for="project-status">Status</label>
+              <select class="admin-form-control" id="project-status" name="status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="project-location">Project Location</label>
+              <select class="admin-form-control" id="project-location" name="location">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="admin-form-group">
+              <label for="project-completionDate">Completion Date</label>
+              <input type="text" class="admin-form-control" id="project-completionDate" name="completionDate" placeholder="e.g. July 2026">
+            </div>
+          </div>
+
+          <div class="admin-form-group">
+            <label for="project-description-editor">Detailed Description *</label>
+            <div id="project-description-editor" style="height: 250px; background: #fff; font-family: inherit;"></div>
+            <input type="hidden" id="project-description" name="description" required>
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="project-video">YouTube Video URL</label>
+              <input type="text" class="admin-form-control" id="project-video" name="videoUrl" placeholder="e.g. https://youtube.com/watch?v=...">
+            </div>
+            <div class="admin-form-group">
+              <label for="project-testimonial">Client Review (Optional)</label>
+              <input type="text" class="admin-form-control" id="project-testimonial" name="testimonials" placeholder="Bespoke quote/review matching this design">
+            </div>
+          </div>
+
+          <!-- Multi Image Uploader -->
+          <div class="admin-form-group">
+            <label for="project-images">Project Gallery Images (Multiple)</label>
+            <input type="file" class="admin-form-control" id="project-images" name="images" multiple accept="image/png, image/jpeg, image/jpg, image/webp">
+            <div class="multi-upload-grid" id="project-images-preview">
+              <!-- Dynamically renders checkboxes to keep files when editing -->
+            </div>
+          </div>
+
+          <!-- Floor Plans Uploader -->
+          <div class="admin-form-group">
+            <label for="project-floorplans">Layout Maps & Floor Plans (Multiple)</label>
+            <input type="file" class="admin-form-control" id="project-floorplans" name="floorPlans" multiple accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf">
+            <div class="multi-upload-grid" id="project-floorplans-preview">
+              <!-- Renders checkboxes to keep layouts when editing -->
+            </div>
+          </div>
+
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+          <h4 style="margin-bottom: 15px; font-weight:600;">SEO Custom Settings (Optional)</h4>
+
+          <div class="admin-form-group">
+            <label for="project-metaTitle">Meta Title Override</label>
+            <input type="text" class="admin-form-control" id="project-metaTitle" name="metaTitle" placeholder="Custom SEO title tab text">
+          </div>
+
+          <div class="admin-form-group">
+            <label for="project-metaDescription">Meta Description Override</label>
+            <textarea class="admin-form-control" id="project-metaDescription" name="metaDescription" placeholder="SEO description tag" style="min-height:70px;"></textarea>
+          </div>
+
+          <div class="admin-form-group">
+            <label for="project-keywords">Keywords</label>
+            <input type="text" class="admin-form-control" id="project-keywords" name="keywords" placeholder="villa design, adipur home designers, interior architects">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-outline" id="btn-cancel-project">Cancel</button>
+          <button type="button" class="btn-admin btn-admin-outline" id="btn-preview-project" style="border-color:var(--accent); color:var(--accent);"><i class="fas fa-eye"></i> Live Preview</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

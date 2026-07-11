@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Settings | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-palette"></i>
+      <span>K.DESIGNS Panel</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/admin/dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+      <li><a href="/admin/services"><i class="fas fa-concierge-bell"></i> Services</a></li>
+      <li><a href="/admin/projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+      <li><a href="/admin/categories"><i class="fas fa-tags"></i> Categories</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-blog"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-comment-alt"></i> Testimonials</a></li>
+      <li><a href="/admin/team"><i class="fas fa-users"></i> Team Members</a></li>
+      <li><a href="/admin/consultations"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-envelope-open-text"></i> Inquiries</a></li>
+      <li class="super-only"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+      <li class="active"><a href="/admin/settings"><i class="fas fa-cogs"></i> System Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="#" class="logout-btn" id="admin-logout"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>System Configurations</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      <div class="data-card">
+        <div class="card-header">
+          <h2>Website Branding & Global Configurations</h2>
+        </div>
+
+        <form id="settings-form" enctype="multipart/form-data" style="padding: 24px;">
+          
+          <h3 style="margin-bottom: 20px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Branding & Identity</h3>
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="siteName">Site Name / Corporate Title *</label>
+              <input type="text" class="admin-form-control" id="siteName" name="siteName" required>
+            </div>
+            
+            <div class="admin-form-group">
+              <label for="logo">Site Logo Image</label>
+              <input type="file" class="admin-form-control" id="logo" name="logo" accept="image/png, image/jpeg, image/jpg, image/webp">
+              <div id="logo-preview" style="margin-top: 10px; min-height: 40px;">
+                <span class="text-gray">No logo uploaded</span>
+              </div>
+            </div>
+          </div>
+
+          <h3 style="margin: 30px 0 20px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Office Contact Points</h3>
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="contactEmail">Public Email Address *</label>
+              <input type="email" class="admin-form-control" id="contactEmail" name="contactEmail" required>
+            </div>
+            
+            <div class="admin-form-group">
+              <label for="contactPhone">Public Phone Number *</label>
+              <input type="text" class="admin-form-control" id="contactPhone" name="contactPhone" required>
+            </div>
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="whatsappNumber">WhatsApp Business Number *</label>
+              <input type="text" class="admin-form-control" id="whatsappNumber" name="whatsappNumber" required placeholder="Country code + number (no spaces or +)">
+            </div>
+            
+            <div class="admin-form-group">
+              <label for="address">Studio Office Address *</label>
+              <input type="text" class="admin-form-control" id="address" name="address" required>
+            </div>
+          </div>
+
+          <div class="admin-form-group">
+            <label for="googleMapUrl">Google Maps Embed URL</label>
+            <input type="text" class="admin-form-control" id="googleMapUrl" name="googleMapUrl" placeholder="https://www.google.com/maps/embed?...">
+          </div>
+
+          <h3 style="margin: 30px 0 20px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Social Media Pages</h3>
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="fbLink">Facebook Profile Link</label>
+              <input type="text" class="admin-form-control" id="fbLink" placeholder="https://facebook.com/...">
+            </div>
+            <div class="admin-form-group">
+              <label for="instaLink">Instagram Profile Link</label>
+              <input type="text" class="admin-form-control" id="instaLink" placeholder="https://instagram.com/...">
+            </div>
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="linkedinLink">LinkedIn Page Link</label>
+              <input type="text" class="admin-form-control" id="linkedinLink" placeholder="https://linkedin.com/...">
+            </div>
+            <div class="admin-form-group">
+              <label for="ytLink">YouTube Channel Link</label>
+              <input type="text" class="admin-form-control" id="ytLink" placeholder="https://youtube.com/...">
+            </div>
+          </div>
+
+          <h3 style="margin: 30px 0 20px; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Global Default SEO Options</h3>
+          <div class="admin-form-group">
+            <label for="defaultMetaTitle">Default Page Meta Title</label>
+            <input type="text" class="admin-form-control" id="defaultMetaTitle">
+          </div>
+
+          <div class="admin-form-group">
+            <label for="defaultMetaDescription">Default Meta Description</label>
+            <textarea class="admin-form-control" id="defaultMetaDescription" style="min-height:80px;"></textarea>
+          </div>
+
+          <div class="admin-form-group">
+            <label for="defaultKeywords">Default Keywords</label>
+            <input type="text" class="admin-form-control" id="defaultKeywords">
+          </div>
+
+          <div style="margin-top: 30px; display:flex; justify-content:flex-end;">
+            <button type="submit" class="btn-admin btn-admin-primary" style="padding:12px 30px;">Save System Settings</button>
+          </div>
+
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login | K.DESIGNS & INTERIORS</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="login-body">
+
+  <div class="login-card">
+    <div class="login-header">
+      <h2>K.DESIGNS & INTERIORS</h2>
+      <p>Administrative Control Login</p>
+    </div>
+    
+    <form id="admin-login-form">
+      <div class="admin-form-group">
+        <label for="username">Username</label>
+        <input type="text" class="admin-form-control" id="username" placeholder="Enter username" required autocomplete="username">
+      </div>
+      
+      <div class="admin-form-group">
+        <label for="password">Password</label>
+        <input type="password" class="admin-form-control" id="password" placeholder="Enter password" required autocomplete="current-password">
+      </div>
+      
+      <button type="submit" class="btn-admin btn-admin-primary" style="width:100%; justify-content:center; margin-top:20px; padding:12px;">Login</button>
+    </form>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

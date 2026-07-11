@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Role Matrix | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-palette"></i>
+      <span>K.DESIGNS Panel</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/admin/dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+      <li><a href="/admin/services"><i class="fas fa-concierge-bell"></i> Services</a></li>
+      <li><a href="/admin/projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+      <li><a href="/admin/categories"><i class="fas fa-tags"></i> Categories</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-blog"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-comment-alt"></i> Testimonials</a></li>
+      <li><a href="/admin/team"><i class="fas fa-users"></i> Team Members</a></li>
+      <li><a href="/admin/consultations"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-envelope-open-text"></i> Inquiries</a></li>
+      <li class="super-only active"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+      <li><a href="/admin/settings"><i class="fas fa-cogs"></i> System Settings</a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="#" class="logout-btn" id="admin-logout"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>Administrative Sub-Accounts</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      <div class="data-card">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>Admin Accounts & Permissions Matrix</h2>
+          <button class="btn-admin btn-admin-primary" id="btn-add-admin"><i class="fas fa-plus-circle"></i> Create Sub-Account</button>
+        </div>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Photo</th>
+                <th>Display Name</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Permissions</th>
+                <th style="width: 100px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admins-table-body">
+              <tr>
+                <td colspan="6" class="text-center">Loading admin accounts...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Admin Modal -->
+  <div class="admin-modal" id="admin-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="admin-modal-title">Create Admin Account</h3>
+        <button class="modal-close"><i class="fas fa-times"></i></button>
+      </div>
+      <form id="admin-form">
+        <div class="modal-body">
+          
+          <h3 style="margin-bottom: 16px; font-size: 1.05rem; border-bottom: 1px solid var(--border); padding-bottom: 6px;">1. Account Details</h3>
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="admin-name">Display Name *</label>
+              <input type="text" class="admin-form-control" id="admin-name" required placeholder="e.g. Kunal Sharma">
+            </div>
+            <div class="admin-form-group">
+              <label for="admin-role">System Role *</label>
+              <select class="admin-form-control" id="admin-role" required>
+                <option value="Editor">Editor</option>
+                <option value="Viewer">Viewer</option>
+                <option value="SuperAdmin">SuperAdmin</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="admin-email">Email Address *</label>
+              <input type="email" class="admin-form-control" id="admin-email" required placeholder="kunal@gmail.com">
+            </div>
+            <div class="admin-form-group">
+              <label for="admin-phone">Phone Number</label>
+              <input type="text" class="admin-form-control" id="admin-phone" placeholder="+91 99999 88888">
+            </div>
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label for="admin-username">Username *</label>
+              <input type="text" class="admin-form-control" id="admin-username" required placeholder="e.g. kunal_editor">
+            </div>
+            <div class="admin-form-group">
+              <label for="admin-password">Password <span id="pwd-required-badge">*</span></label>
+              <input type="password" class="admin-form-control" id="admin-password" placeholder="At least 6 characters">
+            </div>
+          </div>
+
+          <h3 style="margin: 25px 0 16px; font-size: 1.05rem; border-bottom: 1px solid var(--border); padding-bottom: 6px;">2. Module Permissions Matrix</h3>
+          <p style="font-size:0.85rem; color:var(--text-gray); margin-bottom: 15px;">Specify which sections this admin member can view, edit, and access. (Note: SuperAdmins have access to all modules automatically).</p>
+          
+          <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 20px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; background: var(--admin-bg);">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border); background-color: var(--border-light);">
+                  <th style="padding: 12px; font-weight: 600;">Module / Feature</th>
+                  <th style="padding: 12px; font-weight: 600; text-align: center;">View / Access</th>
+                  <th style="padding: 12px; font-weight: 600; text-align: center;">Add / Create</th>
+                  <th style="padding: 12px; font-weight: 600; text-align: center;">Edit / Update</th>
+                  <th style="padding: 12px; font-weight: 600; text-align: center;">Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Row 1: Services -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Services Panel</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="services_view" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="services_add" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="services_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="services_delete" checked></td>
+                </tr>
+                <!-- Row 2: Projects -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Projects Gallery</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="projects_view" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="projects_add" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="projects_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="projects_delete" checked></td>
+                </tr>
+                <!-- Row 3: Categories -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Categories Manager</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="categories_view" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="categories_add" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="categories_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="categories_delete" checked></td>
+                </tr>
+                <!-- Row 4: Blogs -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Blogs / Posts</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="blogs_view" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="blogs_add" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="blogs_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="blogs_delete" checked></td>
+                </tr>
+                <!-- Row 5: Testimonials -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Testimonials</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="testimonials_view" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="testimonials_add" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="testimonials_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="testimonials_delete" checked></td>
+                </tr>
+                <!-- Row 6: Team Members -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Team Members</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="team_view" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="team_add" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="team_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="team_delete" checked></td>
+                </tr>
+                <!-- Row 7: Bookings -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Bookings (Consults)</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="consultations_view" checked></td>
+                  <td style="padding: 12px; text-align: center; color: var(--text-gray); font-style: italic;">N/A</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="consultations_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="consultations_delete" checked></td>
+                </tr>
+                <!-- Row 8: Inquiries -->
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 12px; font-weight: 500;">Inquiries (Contact)</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="contacts_view" checked></td>
+                  <td style="padding: 12px; text-align: center; color: var(--text-gray); font-style: italic;">N/A</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="contacts_edit" checked></td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="contacts_delete" checked></td>
+                </tr>
+                <!-- Row 9: Settings -->
+                <tr>
+                  <td style="padding: 12px; font-weight: 500;">System Settings</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="settings_view" checked></td>
+                  <td style="padding: 12px; text-align: center; color: var(--text-gray); font-style: italic;">N/A</td>
+                  <td style="padding: 12px; text-align: center;"><input type="checkbox" class="perm-check" value="settings_edit" checked></td>
+                  <td style="padding: 12px; text-align: center; color: var(--text-gray); font-style: italic;">N/A</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="margin: 25px 0 16px; font-size: 1.05rem; border-bottom: 1px solid var(--border); padding-bottom: 6px;">3. Excel Reports Download Permissions</h3>
+          <p style="font-size:0.85rem; color:var(--text-gray); margin-bottom: 15px;">Specify which offline Excel reports this admin member is authorized to download.</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; background: var(--admin-bg); padding: 20px; border-radius: 6px; border: 1px solid var(--border);">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
+              <input type="checkbox" class="perm-check" value="report_consultations" checked> Bookings Report
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
+              <input type="checkbox" class="perm-check" value="report_contacts" checked> Inquiries Report
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
+              <input type="checkbox" class="perm-check" value="report_services" checked> Services Report
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
+              <input type="checkbox" class="perm-check" value="report_projects" checked> Projects Report
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
+              <input type="checkbox" class="perm-check" value="report_blogs" checked> Blogs Report
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500;">
+              <input type="checkbox" class="perm-check" value="report_testimonials" checked> Testimonials Report
+            </label>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-admin btn-admin-outline" id="btn-cancel-admin">Cancel</button>
+          <button type="submit" class="btn-admin btn-admin-primary">Save Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

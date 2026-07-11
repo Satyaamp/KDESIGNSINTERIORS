@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultation Details | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .detail-section {
+      background: #fff;
+      padding: 25px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .detail-group {
+      margin-bottom: 20px;
+    }
+    .detail-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: #6b7280;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    .detail-value {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: #1f2937;
+    }
+    @media print {
+      body, html {
+        background: #fff !important;
+        color: #000 !important;
+        display: block !important;
+        min-height: auto !important;
+        height: auto !important;
+        width: 100% !important;
+      }
+      .admin-sidebar, .header-user, .back-btn-container, .print-btn {
+        display: none !important;
+      }
+      .admin-layout {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 0 !important;
+        display: block !important;
+      }
+      .detail-section {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin-bottom: 20px !important;
+        display: block !important;
+      }
+      .details-grid {
+        display: block !important;
+      }
+      .detail-group {
+        page-break-inside: avoid;
+      }
+      #carousel-container {
+        display: none !important;
+      }
+      #print-images-list {
+        display: flex !important;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+      }
+      .print-gallery-img {
+        width: 48% !important;
+        max-height: 250px !important;
+        aspect-ratio: 4/3 !important;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        object-fit: cover;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-palette"></i>
+      <span>K.DESIGNS Panel</span>
+    </div>
+    <ul class="sidebar-menu">
+      <li><a href="/admin/dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
+      <li><a href="/admin/services"><i class="fas fa-concierge-bell"></i> Services</a></li>
+      <li><a href="/admin/projects"><i class="fas fa-project-diagram"></i> Projects</a></li>
+      <li><a href="/admin/categories"><i class="fas fa-database"></i> Master</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-blog"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-comment-alt"></i> Testimonials</a></li>
+      <li><a href="/admin/team"><i class="fas fa-users"></i> Team Members</a></li>
+      <li class="active"><a href="/admin/consultations"><i class="fas fa-calendar-check"></i> Bookings</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-envelope-open-text"></i> Inquiries</a></li>
+      <li class="super-only"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-user-cog"></i> My Profile</a></li>
+      <li><a href="/admin/settings"><i class="fas fa-cogs"></i> System Settings</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <header class="admin-header">
+      <div class="header-title" style="display:flex; align-items:center; gap:15px;">
+        <a href="/admin/consultations" class="back-btn-container" style="color:var(--text-dark); text-decoration:none;"><i class="fas fa-arrow-left"></i></a>
+        <h1>Consultation Details</h1>
+      </div>
+      <div class="header-actions">
+        <button id="print-details-btn" class="btn-admin btn-admin-primary print-btn" style="padding: 8px 16px; font-weight:600; cursor:pointer;"><i class="fas fa-print"></i> Print Details</button>
+      </div>
+    </header>
+
+    <main class="admin-container">
+      <div class="details-grid">
+        
+        <!-- Left: Client Profile info -->
+        <div class="detail-section">
+          <h3 style="margin-bottom:20px; font-size:1.2rem; border-bottom:1px solid #eee; padding-bottom:10px; color:var(--text-dark);"><i class="fas fa-user"></i> Client Profile</h3>
+          
+          <div class="detail-group">
+            <div class="detail-label">Client Name</div>
+            <div class="detail-value" id="det-name">Loading...</div>
+          </div>
+          
+          <div class="detail-group">
+            <div class="detail-label">City / Region</div>
+            <div class="detail-value" id="det-city">-</div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Email Address</div>
+            <div class="detail-value" id="det-email">-</div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Mobile Number</div>
+            <div class="detail-value" id="det-phone">-</div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Timeline</div>
+            <div class="detail-value" id="det-timeline">-</div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Estimated Budget</div>
+            <div class="detail-value" id="det-budget">-</div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Status Update / Action</div>
+            <div id="det-status-container">
+              <select id="det-status-select" class="admin-form-control" style="max-width: 200px; padding: 8px 12px; font-weight:600; border: 1px solid #ccc; border-radius: 6px; background:#fff; cursor: pointer;">
+                <option value="Pending">Pending</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <!-- Digital Signature Seal -->
+            <div id="det-signature-box" style="margin-top: 15px; padding: 12px; background: #f0fdf4; border: 1px dashed #10b981; border-radius: 6px; display: none;">
+              <div style="font-size: 0.72rem; text-transform: uppercase; color: #047857; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Verified Audit Log</div>
+              <div style="font-size: 0.9rem; color: #065f46; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-signature" style="font-size: 14px;"></i> Digitally Signed By: <span id="det-signature-user">-</span>
+              </div>
+              <div style="font-size: 0.8rem; color: #047857; margin-top: 3px;" id="det-signature-time">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Requirements and Files -->
+        <div class="detail-section">
+          <h3 style="margin-bottom:20px; font-size:1.2rem; border-bottom:1px solid #eee; padding-bottom:10px; color:var(--text-dark);"><i class="fas fa-file-alt"></i> Requirements & Files</h3>
+          
+          <div class="detail-group">
+            <div class="detail-label">Project Type</div>
+            <div class="detail-value" id="det-projectType">-</div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Project Size (SQFT)</div>
+            <div class="detail-value" id="det-projectSize">-</div>
+          </div>
+
+          <div class="detail-group">
+            <div class="detail-label">Requirement Brief</div>
+            <div id="det-message" style="line-height:1.6; color:#555; background:#f9f9f9; padding:15px; border-radius:6px; border:1px solid #e5e7eb; font-size:0.95rem;">-</div>
+          </div>
+
+          <div class="detail-group" style="border-top:1px solid #eee; padding-top:15px;">
+            <div class="detail-label">Floor Plan Attachment</div>
+            <div id="det-floorPlan" style="margin-top:8px;">-</div>
+          </div>
+
+          <div class="detail-group" style="border-top:1px solid #eee; padding-top:15px;">
+            <div class="detail-label">Reference Images</div>
+            <!-- Slider Container -->
+            <div id="carousel-container" style="position: relative; width: 100%; height: 300px; background: #eaeaea; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd; margin-top: 10px;">
+              <div id="carousel-slides" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                <img id="carousel-img" src="" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+              </div>
+              <!-- Slider Controls -->
+              <button id="carousel-prev" style="position: absolute; left: 15px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; outline:none;"><i class="fas fa-chevron-left"></i></button>
+              <button id="carousel-next" style="position: absolute; right: 15px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; outline:none;"><i class="fas fa-chevron-right"></i></button>
+              
+              <!-- Index indicator -->
+              <div id="carousel-index" style="position: absolute; bottom: 12px; background: rgba(0,0,0,0.7); color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">1 / 1</div>
+            </div>
+            <div id="carousel-empty" style="color: #aaa; font-style: italic; font-size: 12px; display: none; margin-top: 10px;">No images uploaded</div>
+            <!-- Printer-only images list -->
+            <div id="print-images-list" style="display: none;"></div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // 1. Session check
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        window.location.href = '/admin/login';
+        return;
+      }
+
+      // Set display name in sidebar/header
+      const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      $('#admin-user-display').text(adminUser.username || 'Admin');
+
+      // Bind print click
+      $('#print-details-btn').click(function(e) {
+        e.preventDefault();
+        window.print();
+      });
+
+      // 2. Fetch details
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id');
+      if (!id) {
+        alert('Invalid Request ID');
+        window.location.href = '/admin/consultations';
+        return;
+      }
+
+      let carouselImages = [];
+      let carouselIndex = 0;
+
+      function updateCarouselDisplay() {
+        if (carouselImages.length > 0 && carouselImages[carouselIndex]) {
+          $('#carousel-img').attr('src', carouselImages[carouselIndex].url);
+          $('#carousel-index').text((carouselIndex + 1) + ' / ' + carouselImages.length);
+        }
+      }
+
+      $.ajax({
+        url: '/api/consultations',
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + token
+        },
+        success: function(res) {
+          if (res.success) {
+            const c = res.consultations.find(item => item._id === id);
+            if (c) {
+              $('#det-name').text(c.name);
+              $('#det-city').text(c.city || 'Not specified');
+              $('#det-email').html('<a href="mailto:' + c.email + '">' + c.email + '</a>');
+              $('#det-phone').html('<a href="tel:' + c.phone + '">' + c.phone + '</a>');
+              $('#det-timeline').text(c.timeline || 'Not specified');
+              $('#det-budget').text(c.budget || 'Not specified');
+              // Populate and lock status selections dynamically
+              const statusSelect = $('#det-status-select');
+              statusSelect.val(c.status);
+              if (c.status === 'Completed') {
+                statusSelect.prop('disabled', true);
+              } else if (c.status === 'Contacted') {
+                statusSelect.find('option[value="Pending"]').prop('disabled', true);
+              }
+
+              // Populate verified audit log signature
+              if (c.statusUpdatedBy) {
+                $('#det-signature-user').text(c.statusUpdatedBy);
+                const formattedTime = new Date(c.statusUpdatedAt).toLocaleString('en-IN', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short'
+                });
+                $('#det-signature-time').text(formattedTime);
+                $('#det-signature-box').show();
+              } else {
+                $('#det-signature-box').hide();
+              }
+              $('#det-projectType').text(c.projectType || 'Not specified');
+              $('#det-projectSize').text(c.projectSize ? (c.projectSize + ' SQFT') : 'Not specified');
+              $('#det-message').text(c.message || 'None');
+
+              // Floor plan
+              if (c.floorPlan && c.floorPlan.url) {
+                if (c.floorPlan.url.toLowerCase().endsWith('.pdf')) {
+                  $('#det-floorPlan').html(`
+                    <a href="${c.floorPlan.url}" target="_blank" style="display:inline-flex; align-items:center; gap:6px; background:#eef2f5; padding:8px 12px; border-radius:4px; font-size:12px; font-weight:600; color:#333; border:1px solid #ddd; text-decoration:none;">
+                      <i class="fas fa-file-pdf" style="color:#e53e3e; font-size:15px;"></i> View Floor Plan PDF
+                    </a>
+                  `);
+                } else {
+                  $('#det-floorPlan').html(`
+                    <a href="${c.floorPlan.url}" target="_blank">
+                      <img src="${c.floorPlan.url}" style="max-width:180px; border-radius:6px; border:1px solid #ddd; max-height:130px; object-fit:cover;">
+                    </a>
+                  `);
+                }
+              } else {
+                $('#det-floorPlan').html('<span style="color:#aaa; font-style:italic; font-size:12px;">Not provided</span>');
+              }
+
+              // Reference images slider setup
+              if (c.images && c.images.length) {
+                $('#carousel-container').show();
+                $('#carousel-empty').hide();
+                carouselImages = c.images;
+                carouselIndex = 0;
+                updateCarouselDisplay();
+
+                if (carouselImages.length <= 1) {
+                  $('#carousel-prev, #carousel-next').hide();
+                } else {
+                  $('#carousel-prev, #carousel-next').show();
+                }
+
+                // Populate printer-only list with all images
+                let printImgsHtml = '';
+                c.images.forEach(img => {
+                  printImgsHtml += `<img src="${img.url}" class="print-gallery-img">`;
+                });
+                $('#print-images-list').html(printImgsHtml);
+              } else {
+                $('#carousel-container').hide();
+                $('#carousel-empty').show();
+                carouselImages = [];
+                carouselIndex = 0;
+              }
+
+              // Bind Carousel Controls
+              $('#carousel-prev').click(function(e) {
+                e.preventDefault();
+                if (carouselImages.length > 0) {
+                  carouselIndex = (carouselIndex - 1 + carouselImages.length) % carouselImages.length;
+                  updateCarouselDisplay();
+                }
+              });
+
+              $('#carousel-next').click(function(e) {
+                e.preventDefault();
+                if (carouselImages.length > 0) {
+                  carouselIndex = (carouselIndex + 1) % carouselImages.length;
+                  updateCarouselDisplay();
+                }
+              });
+
+            } else {
+              alert('Request Details Not Found');
+              window.location.href = '/admin/consultations';
+            }
+          }
+        },
+        error: function() {
+          alert('Error loading details');
+          window.location.href = '/admin/consultations';
+        }
+      });
+
+      // Bind status dropdown updates
+      $(document).on('change', '#det-status-select', function() {
+        const newStatus = $(this).val();
+        $.ajax({
+          url: `/api/consultations/${id}`,
+          method: 'PUT',
+          data: { status: newStatus },
+          headers: {
+            'Authorization': 'Bearer ' + token
+          },
+          success: function(res) {
+            alert('Consultation status updated successfully!');
+            window.location.reload();
+          },
+          error: function(xhr) {
+            const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to update status.';
+            alert(errorMsg);
+            window.location.reload();
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

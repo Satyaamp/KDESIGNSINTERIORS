@@ -1,4 +1,11 @@
 $(document).ready(function() {
+  // Prevent Back-button browser cache access to dashboard after logout
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+      window.location.reload();
+    }
+  });
+
   const path = window.location.pathname;
   
   // 1. Session Protection Checks
@@ -15,30 +22,39 @@ $(document).ready(function() {
       return;
     }
 
-    // Initialize collapsible sidebar state from preference
-    const isSidebarCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
-    if (isSidebarCollapsed) {
-      $('.admin-sidebar').addClass('collapsed');
-    }
+    // Inject admin sidebar dynamically from template
+    if ($('aside.admin-sidebar').length) {
+      $('aside.admin-sidebar').load('/admin/components/sidebar.html', function() {
+        // Initialize collapsible sidebar state from preference
+        const isSidebarCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (isSidebarCollapsed) {
+          $('.admin-sidebar').addClass('collapsed');
+        }
 
-    // Dynamic brand elements builder for sidebar collapse toggle
-    const sidebarBrand = $('.sidebar-brand');
-    if (sidebarBrand.length) {
-      sidebarBrand.css({
-        'display': 'flex',
-        'justify-content': 'space-between',
-        'align-items': 'center',
-        'width': '100%'
+        // Dynamic brand elements builder for sidebar collapse toggle
+        const sidebarBrand = $('.sidebar-brand');
+        if (sidebarBrand.length) {
+          sidebarBrand.css({
+            'display': 'flex',
+            'justify-content': 'space-between',
+            'align-items': 'center',
+            'width': '100%'
+          });
+          const currentBrandContent = sidebarBrand.html();
+          sidebarBrand.html(`
+            <div class="brand-left" style="display:flex; align-items:center; gap:10px;">
+              ${currentBrandContent}
+            </div>
+            <button id="sidebar-toggle-btn" style="background:none; border:none; color:var(--text-gray); cursor:pointer; font-size:1.1rem; padding: 4px 8px; display:flex; align-items:center; justify-content:center; border-radius:4px; outline:none; transition: color 0.2s, transform 0.3s;" title="Toggle Sidebar">
+              <i class="fas fa-angle-double-left" style="color: #fff;"></i>
+            </button>
+          `);
+        }
+
+        // Run guards and active highlights once loaded
+        applyPermissionsGuards();
+        highlightActiveAdminSidebarLink();
       });
-      const currentBrandContent = sidebarBrand.html();
-      sidebarBrand.html(`
-        <div class="brand-left" style="display:flex; align-items:center; gap:10px;">
-          ${currentBrandContent}
-        </div>
-        <button id="sidebar-toggle-btn" style="background:none; border:none; color:var(--text-gray); cursor:pointer; font-size:1.1rem; padding: 4px 8px; display:flex; align-items:center; justify-content:center; border-radius:4px; outline:none; transition: color 0.2s, transform 0.3s;" title="Toggle Sidebar">
-          <i class="fas fa-angle-double-left" style="color: #fff;"></i>
-        </button>
-      `);
     }
 
     // Collapsed state click transition bindings
@@ -342,6 +358,19 @@ $(document).ready(function() {
       }
     }
 
+    // Active Admin Sidebar Link highlighter
+    function highlightActiveAdminSidebarLink() {
+      const path = window.location.pathname;
+      $('.sidebar-menu li').removeClass('active');
+      $('.sidebar-menu li').each(function() {
+        const a = $(this).find('a');
+        const href = a.attr('href');
+        if (href && (path === href || path.includes(href))) {
+          $(this).addClass('active');
+        }
+      });
+    }
+
     // Run guards immediately using cached details
     applyPermissionsGuards();
     watchCrudElements();
@@ -412,11 +441,15 @@ $(document).ready(function() {
   });
 
   // Admin Logout Action
-  $('#admin-logout').click(function(e) {
+  $(document).on('click', '#admin-logout', function(e) {
     e.preventDefault();
     if (confirm('Are you sure you want to log out?')) {
       localStorage.removeItem('admin_token');
       localStorage.removeItem('admin_user');
+      
+      // Delete the gatekeeper cookie so the secret link is required next time!
+      document.cookie = "admin_access_authorized=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
       window.location.href = '/admin/login';
     }
   });
@@ -450,6 +483,51 @@ $(document).ready(function() {
     initAdminProfile();
   }
 });
+
+// Dynamic Module Refresh Loader Binder
+window.setupModuleRefresh = function(headerSelector, buttonId, loadFunction) {
+  const cardHeader = $(headerSelector).first();
+  if (cardHeader.length && !$(`#${buttonId}`).length) {
+    cardHeader.css({
+      'display': 'flex',
+      'justify-content': 'space-between',
+      'align-items': 'center'
+    });
+    
+    const addButton = cardHeader.find('button, .btn-admin-primary, .btn-primary');
+    const refreshBtnHtml = `
+      <button id="${buttonId}" class="admin-btn-refresh" title="Refresh Data">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    `;
+    
+    if (addButton.length) {
+      addButton.before(refreshBtnHtml);
+    } else {
+      cardHeader.append(refreshBtnHtml);
+    }
+
+    $(document).off('click', `#${buttonId}`).on('click', `#${buttonId}`, function(e) {
+      e.preventDefault();
+      const btn = $(this);
+      const icon = btn.find('i');
+      if (icon.hasClass('fa-spin')) return; // Prevent spamming click
+
+      icon.addClass('fa-spin');
+      const startTime = Date.now();
+
+      loadFunction(() => {
+        const elapsedTime = Date.now() - startTime;
+        const minimumSpinTime = 800; // Enforce minimum 800ms satisfying rotation feel
+        const remainingTime = Math.max(0, minimumSpinTime - elapsedTime);
+
+        setTimeout(() => {
+          icon.removeClass('fa-spin');
+        }, remainingTime);
+      });
+    });
+  }
+};
 
 // Toast notice generator
 function showToast(message, type = 'success') {
@@ -486,10 +564,46 @@ function setupSidebarNavigation(path) {
 
 // --- Login Handler ---
 function setupLoginHandler() {
+  // Real-time username role preview / existence checker
+  let debounceTimeout = null;
+  $('#username').on('input', function() {
+    clearTimeout(debounceTimeout);
+    const usernameVal = $(this).val().trim();
+    const badge = $('#username-role-badge');
+    
+    if (!usernameVal) {
+      badge.hide().text('');
+      return;
+    }
+
+    debounceTimeout = setTimeout(function() {
+      $.ajax({
+        url: `/api/auth/check-role/${encodeURIComponent(usernameVal)}`,
+        method: 'GET',
+        success: function(res) {
+          if (res.success) {
+            badge.css({
+              'color': '#34d399',
+              'display': 'block'
+            }).html(`<i class="fas fa-check-circle" style="margin-right:5px;"></i>Role: ${res.role}`);
+          }
+        },
+        error: function(err) {
+          badge.css({
+            'color': '#f87171',
+            'display': 'block'
+          }).html(`<i class="fas fa-times-circle" style="margin-right:5px;"></i>No such user exists`);
+        }
+      });
+    }, 400); // 400ms debounce
+  });
+
   $('#admin-login-form').submit(function(e) {
     e.preventDefault();
     const btn = $(this).find('button[type="submit"]');
-    btn.prop('disabled', true).text('Logging in...');
+    
+    // Animate button to loading state
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Verifying...');
 
     const data = {
       username: $('#username').val(),
@@ -504,20 +618,77 @@ function setupLoginHandler() {
         if (res.success) {
           localStorage.setItem('admin_token', res.token);
           localStorage.setItem('admin_user', JSON.stringify(res.admin));
-          window.location.href = '/admin/dashboard';
+          
+          // Render beautiful success overlay
+          const overlayHtml = `
+            <div id="login-success-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(18, 18, 18, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s ease;">
+              <div class="loader-spinner" style="width: 50px; height: 50px; border: 3px solid rgba(197, 168, 128, 0.15); border-top: 3px solid #C5A880; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 25px; box-shadow: 0 0 15px rgba(197, 168, 128, 0.15);"></div>
+              <div class="loader-title" style="font-family: 'Playfair Display', Georgia, serif; font-size: 1.5rem; color: #ffffff; margin-bottom: 8px; letter-spacing: 1px; font-weight: 700;">Access Authorized</div>
+              <div class="loader-status" style="font-size: 0.82rem; color: #C5A880; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; text-align: center; transition: all 0.25s ease;">Verifying credentials...</div>
+            </div>
+          `;
+          
+          $('body').append(overlayHtml);
+          
+          // Trigger CSS fade-in
+          setTimeout(function() {
+            $('#login-success-overlay').css('opacity', '1');
+          }, 50);
+
+          // Step-by-step progress status messages (taking 10 seconds total)
+          const statusMessages = [
+            { time: 1200, text: 'Retrieving corporate services catalog...' },
+            { time: 2400, text: 'Loading architectural projects gallery...' },
+            { time: 3600, text: 'Syncing master categories & cities...' },
+            { time: 4800, text: 'Downloading dynamic team profiles...' },
+            { time: 6000, text: 'Updating client testimonial registry...' },
+            { time: 7200, text: 'Fetching booking requests & consultations...' },
+            { time: 8400, text: 'Checking incoming contact desk inquiries...' },
+            { time: 9400, text: 'Configuring dashboard workspace...' }
+          ];
+
+          statusMessages.forEach(function(msg) {
+            setTimeout(function() {
+              const statusEl = $('.loader-status');
+              statusEl.css({
+                'opacity': '0',
+                'transform': 'translateY(-5px)'
+              });
+              
+              setTimeout(function() {
+                statusEl.text(msg.text).css({
+                  'opacity': '1',
+                  'transform': 'translateY(0)'
+                });
+              }, 150);
+            }, msg.time);
+          });
+
+          // Final Redirect at 10 seconds
+          setTimeout(function() {
+            window.location.href = '/admin/dashboard';
+          }, 10000);
         }
       },
       error: function(err) {
         const errorMsg = err.responseJSON ? err.responseJSON.message : 'Invalid credentials';
-        alert(errorMsg);
-        btn.prop('disabled', false).text('Login');
+        
+        // Show clean dynamic error state on button
+        btn.html('Invalid Credentials').css('background-color', '#ef4444');
+        
+        setTimeout(function() {
+          btn.prop('disabled', false).html('Login').css('background-color', 'var(--accent, #C5A880)');
+        }, 1500);
       }
     });
   });
 }
 
 // --- Dashboard Statistics Loader ---
-function loadDashboardStats() {
+function loadDashboardStats(callback) {
+  // Setup module refresh in the dashboard header
+  window.setupModuleRefresh('.admin-header .header-title', 'btn-refresh-dashboard', loadDashboardStats);
+
   const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
   const role = adminUser.role || 'Editor';
   const permissions = Array.isArray(adminUser.permissions) ? adminUser.permissions : [];
@@ -572,17 +743,23 @@ function loadDashboardStats() {
     $('.reports-panel-card').show();
   }
 
+  const promises = [];
   // Fetch only permitted modules
   endpoints.forEach(ep => {
     if (role === 'SuperAdmin' || permissions.includes(ep.module) || permissions.includes(ep.module + '_view')) {
-      $.get(ep.url, function(res) {
+      const p = $.get(ep.url, function(res) {
         if (res.success) {
           const count = res.pagination ? res.pagination.total : (res[ep.countKey] ? res[ep.countKey].length : 0);
           $(`#stat-${ep.key}`).text(count);
         }
       });
+      promises.push(p);
     }
   });
+
+  if (typeof callback === 'function') {
+    $.when.apply($, promises).always(callback);
+  }
 }
 
 // Helper to format Date & Time in IST Timezone
@@ -1230,6 +1407,7 @@ function initAdminServices() {
   // Initialize Quill Editor for Services Description
   const quill = window.createRichEditor('#service-description-editor', 'Write a detailed description about the service...');
 
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-services', loadServicesList);
   loadServicesList();
 
   // Search box binding
@@ -1431,8 +1609,14 @@ function initAdminServices() {
   });
 }
 
-function loadServicesList(search = '', page = 1) {
-  $.get(`/api/services?admin=true&search=${search}&page=${page}`, function(res) {
+function loadServicesList(search = '', page = 1, callback) {
+  if (typeof search === 'function') {
+    callback = search;
+    search = '';
+    page = 1;
+  }
+  const term = search || $('#search-services').val() || '';
+  $.get(`/api/services?admin=true&search=${term}&page=${page}`, function(res) {
     if (res.success) {
       let rows = '';
       res.services.forEach(s => {
@@ -1455,6 +1639,9 @@ function loadServicesList(search = '', page = 1) {
       });
       $('#services-table-body').html(rows || '<tr><td colspan="5" class="text-center">No services found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
@@ -1466,6 +1653,7 @@ function initAdminProjects() {
   // Initialize Quill Editor for Projects Description
   const quill = window.createRichEditor('#project-description-editor', 'Describe styling themes, space sizes, layout models, construction materials...');
 
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-projects', loadProjectsList);
   loadProjectsList();
   loadProjectCategoryOptions();
   loadProjectLocationOptions();
@@ -1681,8 +1869,14 @@ function initAdminProjects() {
   });
 }
 
-function loadProjectsList(search = '', page = 1) {
-  $.get(`/api/projects?admin=true&search=${search}&page=${page}`, function(res) {
+function loadProjectsList(search = '', page = 1, callback) {
+  if (typeof search === 'function') {
+    callback = search;
+    search = '';
+    page = 1;
+  }
+  const term = search || $('#search-projects').val() || '';
+  $.get(`/api/projects?admin=true&search=${term}&page=${page}`, function(res) {
     if (res.success) {
       let rows = '';
       res.projects.forEach(p => {
@@ -1705,6 +1899,9 @@ function loadProjectsList(search = '', page = 1) {
       });
       $('#projects-table-body').html(rows || '<tr><td colspan="5" class="text-center">No projects found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
@@ -1741,6 +1938,7 @@ function initAdminBlogs() {
   // Initialize Quill Editor
   const quill = window.createRichEditor('#blog-content-editor', 'Write visual rich content details here...');
 
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-blogs', loadBlogsList);
   loadBlogsList();
   loadBlogCategoryOptions();
 
@@ -1950,8 +2148,14 @@ function initAdminBlogs() {
   });
 }
 
-function loadBlogsList(search = '', page = 1) {
-  $.get(`/api/blogs?admin=true&search=${search}&page=${page}`, function(res) {
+function loadBlogsList(search = '', page = 1, callback) {
+  if (typeof search === 'function') {
+    callback = search;
+    search = '';
+    page = 1;
+  }
+  const term = search || $('#search-blogs').val() || '';
+  $.get(`/api/blogs?admin=true&search=${term}&page=${page}`, function(res) {
     if (res.success) {
       let rows = '';
       res.blogs.forEach(b => {
@@ -1974,6 +2178,9 @@ function loadBlogsList(search = '', page = 1) {
       });
       $('#blogs-table-body').html(rows || '<tr><td colspan="5" class="text-center">No blog posts found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
@@ -1992,6 +2199,7 @@ function loadBlogCategoryOptions() {
 // --- Testimonials CRUD ---
 function initAdminTestimonials() {
   let editId = null;
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-testimonials', loadTestimonialsList);
   loadTestimonialsList();
 
   $('#btn-add-testimonial').click(function() {
@@ -2075,7 +2283,7 @@ function initAdminTestimonials() {
   });
 }
 
-function loadTestimonialsList() {
+function loadTestimonialsList(callback) {
   $.get('/api/testimonials?admin=true', function(res) {
     if (res.success) {
       let rows = '';
@@ -2097,12 +2305,16 @@ function loadTestimonialsList() {
       });
       $('#testimonials-table-body').html(rows || '<tr><td colspan="5" class="text-center">No testimonials found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
 // --- Team Members CRUD ---
 function initAdminTeam() {
   let editId = null;
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-team', loadTeamList);
   loadTeamList();
 
   $('#btn-add-team').click(function() {
@@ -2187,7 +2399,7 @@ function initAdminTeam() {
   });
 }
 
-function loadTeamList() {
+function loadTeamList(callback) {
   $.get('/api/team?admin=true', function(res) {
     if (res.success) {
       let rows = '';
@@ -2210,6 +2422,9 @@ function loadTeamList() {
       });
       $('#team-table-body').html(rows || '<tr><td colspan="5" class="text-center">No team members found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
@@ -2217,6 +2432,7 @@ function loadTeamList() {
 let loadedConsultations = [];
 
 function initAdminConsultations() {
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-consultations', loadConsultationsList);
   loadConsultationsList();
 
   $(document).on('change', '.consult-status-select', function() {
@@ -2255,7 +2471,7 @@ function initAdminConsultations() {
   });
 }
 
-function loadConsultationsList() {
+function loadConsultationsList(callback) {
   $.get('/api/consultations', function(res) {
     if (res.success) {
       loadedConsultations = res.consultations;
@@ -2294,6 +2510,9 @@ function loadConsultationsList() {
       });
       $('#consultations-table-body').html(rows || '<tr><td colspan="5" class="text-center">No consultation requests found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
@@ -2301,6 +2520,7 @@ let loadedContacts = [];
 let currentContactId = null;
 
 function initAdminContacts() {
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-contacts', loadContactsList);
   loadContactsList();
 
   $(document).on('change', '.contact-status-select', function() {
@@ -2387,7 +2607,7 @@ function initAdminContacts() {
   });
 }
 
-function loadContactsList() {
+function loadContactsList(callback) {
   $.get('/api/contacts', function(res) {
     if (res.success) {
       loadedContacts = res.contacts;
@@ -2422,6 +2642,9 @@ function loadContactsList() {
       });
       $('#contacts-table-body').html(rows || '<tr><td colspan="5" class="text-center">No contact inquiries found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
@@ -2627,6 +2850,10 @@ function initAdminSettings() {
 function initAdminCategories() {
   let editProjectCatId = null;
   let editBlogCatId = null;
+
+  window.setupModuleRefresh('#tab-categories .data-card:first-child .card-header', 'btn-refresh-project-cats', loadProjectCatsList);
+  window.setupModuleRefresh('#tab-categories .data-card:last-child .card-header', 'btn-refresh-blog-cats', loadBlogCatsList);
+  window.setupModuleRefresh('#tab-cities .data-card .card-header', 'btn-refresh-cities', loadCitiesList);
 
   loadProjectCatsList();
   loadBlogCatsList();
@@ -2862,7 +3089,7 @@ function initAdminCategories() {
     }
   });
 
-  function loadCitiesList() {
+  function loadCitiesList(callback) {
     $.get('/api/cities', function(res) {
       if (res.success) {
         let rows = '';
@@ -2882,11 +3109,14 @@ function initAdminCategories() {
         });
         $('#cities-table-body').html(rows || '<tr><td colspan="3" class="text-center">No serving cities found.</td></tr>');
       }
+      if (typeof callback === 'function') callback();
+    }).fail(function() {
+      if (typeof callback === 'function') callback();
     });
   }
 }
 
-function loadProjectCatsList() {
+function loadProjectCatsList(callback) {
   $.get('/api/project-categories?admin=true', function(res) {
     if (res.success) {
       let rows = '';
@@ -2906,10 +3136,13 @@ function loadProjectCatsList() {
       });
       $('#project-cats-table-body').html(rows || '<tr><td colspan="3" class="text-center">No categories found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
-function loadBlogCatsList() {
+function loadBlogCatsList(callback) {
   $.get('/api/blog-categories?admin=true', function(res) {
     if (res.success) {
       let rows = '';
@@ -2929,12 +3162,16 @@ function loadBlogCatsList() {
       });
       $('#blog-cats-table-body').html(rows || '<tr><td colspan="3" class="text-center">No categories found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 
 // --- Role Matrix & Sub-Admins CRUD ---
 function initAdminSubAccounts() {
   let editAdminId = null;
+  window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-admins', loadAdminsList);
   loadAdminsList();
 
   function applyRoleDefaultPermissions(roleVal) {
@@ -3072,7 +3309,7 @@ function initAdminSubAccounts() {
   });
 }
 
-function loadAdminsList() {
+function loadAdminsList(callback) {
   $.get('/api/auth/admins', function(res) {
     if (res.success) {
       let rows = '';
@@ -3117,6 +3354,9 @@ function loadAdminsList() {
       });
       $('#admins-table-body').html(rows || '<tr><td colspan="6" class="text-center">No other admin accounts found.</td></tr>');
     }
+    if (typeof callback === 'function') callback();
+  }).fail(function() {
+    if (typeof callback === 'function') callback();
   });
 }
 

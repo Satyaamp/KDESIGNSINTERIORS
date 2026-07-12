@@ -18,6 +18,7 @@ const cityController = require('../controllers/cityController');
 
 // --- AUTH / USER PROFILE ROUTES ---
 router.post('/auth/login', authController.login);
+router.get('/auth/check-role/:username', authController.checkUsernameRole);
 router.get('/auth/profile', protect, authController.getProfile);
 router.put('/auth/profile', protect, upload.single('profilePicture'), authController.updateProfile);
 router.put('/auth/change-password', protect, authController.changePassword);

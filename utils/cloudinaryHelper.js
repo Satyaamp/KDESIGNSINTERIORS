@@ -26,6 +26,7 @@ const uploadImage = async (localFilePath, folderName = 'k_designs') => {
     if (isCloudinaryConfigured) {
       const result = await cloudinary.uploader.upload(localFilePath, {
         folder: folderName,
+        resource_type: 'auto'
       });
       // Delete temporary upload file from temp/
       if (fs.existsSync(localFilePath)) {

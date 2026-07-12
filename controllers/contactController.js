@@ -55,10 +55,11 @@ const createContact = async (req, res) => {
     `;
 
     try {
-      // 1. Send alert to admin
-      await sendMail(recipientEmail, emailSubject, emailBody, emailHtml);
+      // 1. Send alert to admin (in background)
+      sendMail(recipientEmail, emailSubject, emailBody, emailHtml)
+        .catch(err => console.error('Admin contact email dispatch failed:', err));
 
-      // 2. Send email confirmation to the customer
+      // 2. Send email confirmation to the customer (in background)
       const customerSubject = `Inquiry Received - K.DESIGNS & INTERIORS`;
       const customerHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
@@ -86,9 +87,10 @@ const createContact = async (req, res) => {
       `;
       const customerText = `Dear ${name},\n\nThank you for reaching out to K.DESIGNS & INTERIORS!\nWe have received your message regarding: ${subject || 'General Inquiry'}.\nOur team will review your message and respond shortly.\n\nWarm regards,\nK.DESIGNS & INTERIORS`;
 
-      await sendMail(email, customerSubject, customerText, customerHtml);
+      sendMail(email, customerSubject, customerText, customerHtml)
+        .catch(err => console.error('Customer contact email dispatch failed:', err));
     } catch (mailError) {
-      console.error('SMTP Mail send failed:', mailError);
+      console.error('SMTP Mail trigger failed:', mailError);
     }
 
     res.status(201).json({

@@ -545,36 +545,105 @@ body {
 }
 
 /* Admin Login Page */
+/* Premium Admin Login Page */
 .login-body {
   align-items: center;
   justify-content: center;
-  background-color: #F3F4F6;
+  background: linear-gradient(135deg, rgba(18, 18, 18, 0.88), rgba(26, 26, 26, 0.96)), url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?q=80&w=1920') no-repeat center center/cover;
+  min-height: 100vh;
   width: 100%;
+  display: flex;
 }
 
-.login-card {
+.login-body .login-card {
   width: 100%;
-  max-width: 420px;
-  background-color: var(--white);
-  padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-  border: 1px solid var(--border);
+  max-width: 440px;
+  background: rgba(30, 30, 30, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 50px 40px;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 4px solid var(--accent, #C5A880);
 }
 
-.login-header {
+.login-body .login-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 35px;
 }
 
-.login-header h2 {
-  font-size: 1.6rem;
+.login-body .login-header h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.login-body .login-header p {
+  color: var(--accent, #C5A880);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+/* Custom form elements for login card */
+.login-body .admin-form-group label {
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
   margin-bottom: 8px;
+  display: block;
 }
 
-.login-header p {
-  color: var(--text-gray);
-  font-size: 0.92rem;
+.login-body .admin-form-control {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  padding: 13px 16px !important;
+  font-size: 0.95rem !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.login-body .admin-form-control::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.login-body .admin-form-control:focus {
+  border-color: var(--accent, #C5A880) !important;
+  box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.25) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Premium Login Button */
+.login-body .btn-admin-primary {
+  background-color: var(--accent, #C5A880) !important;
+  border: none !important;
+  color: #121212 !important;
+  font-weight: 600 !important;
+  font-size: 0.92rem !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  border-radius: 6px !important;
+  padding: 14px !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 4px 15px rgba(197, 168, 128, 0.2) !important;
+  cursor: pointer !important;
+}
+
+.login-body .btn-admin-primary:hover {
+  background-color: #d1b892 !important;
+  box-shadow: 0 6px 20px rgba(197, 168, 128, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+.login-body .btn-admin-primary:active {
+  transform: translateY(0) !important;
 }
 
 /* Forms general */
@@ -797,4 +866,40 @@ textarea.admin-form-control {
   #mobile-nav-toggle {
     display: flex !important;
   }
+}
+
+/* Premium Admin Refresh Buttons */
+.admin-btn-refresh {
+  background: none;
+  border: none;
+  color: #C5A880;
+  cursor: pointer;
+  font-size: 1.15rem;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-right: 8px;
+}
+
+.admin-btn-refresh:hover {
+  color: #C5A880;
+  background-color: rgba(197, 168, 128, 0.15);
+  transform: scale(1.15) rotate(15deg);
+}
+
+.admin-btn-refresh:active {
+  transform: scale(0.95);
+}
+
+.admin-btn-refresh i {
+  transition: transform 0.3s ease;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

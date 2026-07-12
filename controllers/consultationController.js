@@ -119,10 +119,11 @@ const createConsultation = async (req, res) => {
     `;
 
     try {
-      // 1. Send email notification to admin
-      await sendMail(recipientEmail, emailSubject, emailBody, emailHtml);
+      // 1. Send email notification to admin (in background)
+      sendMail(recipientEmail, emailSubject, emailBody, emailHtml)
+        .catch(err => console.error('Admin consultation email dispatch failed:', err));
 
-      // 2. Send premium confirmation email to customer/client
+      // 2. Send premium confirmation email to customer/client (in background)
       const customerSubject = `Consultation Booking Received - K.DESIGNS & INTERIORS`;
       const customerHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
@@ -152,9 +153,10 @@ const createConsultation = async (req, res) => {
       `;
       const customerText = `Dear ${name},\n\nThank you for booking a consultation with K.DESIGNS & INTERIORS!\nWe have received your request and will contact you shortly.\n\nProject Type: ${projectType || 'Not specified'}\nBudget: ${budget || 'Not specified'}\nTimeline: ${timeline || 'Not specified'}\n\nWarm regards,\nK.DESIGNS & INTERIORS`;
 
-      await sendMail(email, customerSubject, customerText, customerHtml);
+      sendMail(email, customerSubject, customerText, customerHtml)
+        .catch(err => console.error('Customer consultation email dispatch failed:', err));
     } catch (mailError) {
-      console.error('SMTP Mail send failed:', mailError);
+      console.error('SMTP Mail trigger failed:', mailError);
     }
 
     res.status(201).json({

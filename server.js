@@ -25,7 +25,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'", "https://code.jquery.com", "https://cdn.jsdelivr.net"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "http://res.cloudinary.com", "*"],
+        imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "http://res.cloudinary.com", "*"],
         connectSrc: ["'self'"],
         frameSrc: ["'self'", "https://www.google.com"],
       },
@@ -52,6 +52,45 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve local uploaded images from public/uploads folder as static
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// Secure Server-Side Gatekeeper & Cache Control for Admin Panel
+app.use('/admin', (req, res, next) => {
+  // Set anti-caching headers for admin panel pages to prevent back-button access after logout
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  // Skip gatekeeper checks if it is not an HTML route (like CSS, JS, fonts, etc. loaded by allowed admin pages)
+  const isHtmlRequest = req.path.endsWith('/') || req.path.endsWith('.html') || !req.path.includes('.');
+  if (!isHtmlRequest) {
+    return next();
+  }
+
+  // Retrieve secret key from environment variables
+  const secretKey = process.env.ADMIN_SECRET_KEY || 'kdesigns_gatekeeper';
+  
+  // Verify secret URL query parameter
+  if (req.query.secret === secretKey) {
+    res.cookie('admin_access_authorized', 'true', {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days authorization
+      httpOnly: false, // Access from client check if required
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    // Redirect to clean the URL query parameter from history
+    const cleanUrl = req.baseUrl + req.path;
+    return res.redirect(cleanUrl);
+  }
+
+  // Verify if browser holds the authorization cookie
+  const cookies = req.headers.cookie || '';
+  if (cookies.includes('admin_access_authorized=true')) {
+    return next();
+  }
+
+  // Not authorized - redirect to public website home page
+  return res.redirect('/');
+});
 
 // Serve public static folder with clean URL support (extensions parameter resolves /about to /about.html)
 app.use(express.static(path.join(__dirname, 'public'), {

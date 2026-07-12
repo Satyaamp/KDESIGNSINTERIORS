@@ -1,7 +1,44 @@
 $(document).ready(function () {
-  // Global Settings and Dynamic Branding Initialization
-  loadGlobalSettings();
-  loadDynamicFooterCities();
+  let loadedCount = 0;
+  const totalToLoad = ($('header').length ? 1 : 0) + ($('footer').length ? 1 : 0);
+
+  function checkAllLoaded() {
+    loadedCount++;
+    if (loadedCount >= totalToLoad) {
+      loadGlobalSettings();
+      loadDynamicFooterCities();
+      highlightActiveNavLink();
+    }
+  }
+
+  // Inject header dynamically
+  if ($('header').length) {
+    $('header').addClass('main-header');
+    $('header').load('/components/header.html', function() {
+      checkAllLoaded();
+      
+      // Mobile Menu Toggle
+      $('.nav-toggle').click(function () {
+        $(this).toggleClass('open');
+        $('nav').toggleClass('open');
+      });
+
+      // Close Mobile Menu on Link Click
+      $('nav a').click(function () {
+        $('.nav-toggle').removeClass('open');
+        $('nav').removeClass('open');
+      });
+    });
+  }
+
+  // Inject footer dynamically
+  if ($('footer').length) {
+    $('footer').load('/components/footer.html', checkAllLoaded);
+  }
+
+  if (totalToLoad === 0) {
+    loadGlobalSettings();
+  }
 
   // Scroll Header Effect
   $(window).scroll(function () {
@@ -12,17 +49,18 @@ $(document).ready(function () {
     }
   });
 
-  // Mobile Menu Toggle
-  $('.nav-toggle').click(function () {
-    $(this).toggleClass('open');
-    $('nav').toggleClass('open');
-  });
-
-  // Close Mobile Menu on Link Click
-  $('nav a').click(function () {
-    $('.nav-toggle').removeClass('open');
-    $('nav').removeClass('open');
-  });
+  function highlightActiveNavLink() {
+    const path = window.location.pathname;
+    $('nav a').removeClass('active');
+    $('nav a').each(function() {
+      const href = $(this).attr('href');
+      if (href === '/' && (path === '/' || path.includes('index') || path.endsWith('/'))) {
+        $(this).addClass('active');
+      } else if (href !== '/' && path.includes(href)) {
+        $(this).addClass('active');
+      }
+    });
+  }
 
   // Form Submissions
   setupFormSubmissions();

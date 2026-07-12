@@ -1338,3 +1338,193 @@ footer {
 .service-card:hover {
   filter: grayscale(0%);
 }
+
+/* Animated Submit Button Processing State */
+@keyframes submitButtonGlow {
+  0% {
+    border-color: #C5A880;
+    box-shadow: 0 0 0 0px rgba(197, 168, 128, 0.7);
+  }
+  50% {
+    border-color: #1e1b18;
+    box-shadow: 0 0 0 6px rgba(30, 27, 24, 0.3);
+  }
+  100% {
+    border-color: #C5A880;
+    box-shadow: 0 0 0 0px rgba(197, 168, 128, 0);
+  }
+}
+
+.submit-btn:disabled, 
+button[type="submit"]:disabled,
+.btn-processing {
+  animation: submitButtonGlow 1.5s infinite ease-in-out !important;
+  border: 2px solid #C5A880 !important;
+  opacity: 0.85 !important;
+  background-color: #1e1b18 !important;
+  color: #ffffff !important;
+  cursor: not-allowed !important;
+}
+
+/* Custom Double-Header Styling */
+.main-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  height: auto !important;
+}
+
+/* Red top border line */
+.main-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: var(--accent, #C5A880);
+  z-index: 1010;
+}
+
+/* Header Top Bar */
+.header-top-bar {
+  background-color: #ffffff;
+  padding: 15px 0;
+  border-bottom: 1px solid #f3efea;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 85px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1005;
+}
+
+.header-top-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.header-top-info-items {
+  display: flex;
+  gap: 30px;
+  margin-left: auto;
+  margin-right: 40px;
+}
+
+.top-info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-info-item .info-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid #eaeaea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dark, #111);
+  font-size: 1.1rem;
+}
+
+.top-info-item .info-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.top-info-item .info-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.top-info-item .info-value {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-dark, #111);
+  text-decoration: none;
+}
+
+.header-top-cta .btn {
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  padding: 12px 24px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.header-top-cta .btn:hover {
+  background-color: var(--accent, #C5A880);
+}
+
+/* Original Navbar container class wrapper */
+.header-main-nav {
+  height: 80px;
+  background-color: transparent;
+  transition: var(--transition);
+  border-bottom: 1px solid transparent;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Re-apply scrolled style modifications to original nav when header is scrolled */
+.main-header.scrolled {
+  transform: translateY(-85px);
+}
+
+.main-header.scrolled .header-main-nav {
+  background-color: rgba(252, 250, 247, 0.95) !important;
+  backdrop-filter: blur(10px);
+  height: 70px;
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.02);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 992px) {
+  .header-top-info-items, .header-top-cta {
+    display: none;
+  }
+  .header-top-bar {
+    height: 75px;
+  }
+  .main-header.scrolled {
+    transform: translateY(-75px);
+  }
+}
+
+@media (max-width: 768px) {
+  .header-top-bar {
+    display: none;
+  }
+  .main-header.scrolled {
+    transform: none !important;
+  }
+  .header-main-nav {
+    height: 60px !important;
+    background-color: rgba(252, 250, 247, 0.95) !important;
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+  nav {
+    top: 60px !important;
+    height: calc(100vh - 60px) !important;
+  }
+}

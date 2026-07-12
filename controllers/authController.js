@@ -304,6 +304,40 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
+// @desc    Check admin user role by username
+// @route   GET /api/auth/check-role/:username
+// @access  Public
+const checkUsernameRole = async (req, res) => {
+  try {
+    const { username } = req.params;
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username is required'
+      });
+    }
+
+    const admin = await Admin.findOne({ username: username.trim().toLowerCase() });
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'No such user exists'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      role: admin.role
+    });
+  } catch (error) {
+    console.error('Error checking role:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while checking role'
+    });
+  }
+};
+
 module.exports = {
   login,
   getProfile,
@@ -312,5 +346,6 @@ module.exports = {
   getAdmins,
   createAdmin,
   updateAdmin,
-  deleteAdmin
+  deleteAdmin,
+  checkUsernameRole
 };

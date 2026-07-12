@@ -75,6 +75,23 @@ const createTeamMember = async (req, res) => {
       status: status || 'Active'
     });
     
+    // Record create team member log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'CREATE_TEAM_MEMBER',
+      description: `Added team member: "${teamMember.name}" (${teamMember.designation})`,
+      metadata: {
+        memberId: teamMember._id,
+        memberName: teamMember.name,
+        designation: teamMember.designation,
+        status: teamMember.status
+      },
+      req
+    });
+
     res.status(201).json({ success: true, teamMember });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -92,6 +109,11 @@ const updateTeamMember = async (req, res) => {
     if (!teamMember) {
       return res.status(404).json({ success: false, message: 'Team member not found' });
     }
+
+    const oldName = teamMember.name;
+    const oldDesignation = teamMember.designation;
+    const oldStatus = teamMember.status;
+    const oldImage = teamMember.image ? teamMember.image.url : '';
     
     if (name) teamMember.name = name;
     if (designation) teamMember.designation = designation;
@@ -110,6 +132,29 @@ const updateTeamMember = async (req, res) => {
     }
     
     await teamMember.save();
+
+    const updatedFields = {};
+    if (name && name !== oldName) updatedFields.name = { old: oldName, new: name };
+    if (designation && designation !== oldDesignation) updatedFields.designation = { old: oldDesignation, new: designation };
+    if (status && status !== oldStatus) updatedFields.status = { old: oldStatus, new: status };
+    if (req.file) updatedFields.image = { old: oldImage ? 'Previous Image' : 'None', new: 'Newly Uploaded Image' };
+
+    // Record update team member log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_TEAM_MEMBER',
+      description: `Updated team member details for: "${teamMember.name}"`,
+      metadata: {
+        memberId: teamMember._id,
+        memberName: teamMember.name,
+        updatedFields
+      },
+      req
+    });
+
     res.json({ success: true, teamMember });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -131,6 +176,22 @@ const deleteTeamMember = async (req, res) => {
     }
     
     await teamMember.deleteOne();
+
+    // Record delete team member log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_TEAM_MEMBER',
+      description: `Removed team member: "${teamMember.name}"`,
+      metadata: {
+        memberId: teamMember._id,
+        memberName: teamMember.name
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Team member deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

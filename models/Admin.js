@@ -18,7 +18,7 @@ const adminSchema = new mongoose.Schema({
   },
   permissions: {
     type: [String],
-    default: ['services', 'projects', 'categories', 'blogs', 'testimonials', 'team', 'consultations', 'contacts', 'settings']
+    default: ['services', 'projects', 'categories', 'blogs', 'testimonials', 'team', 'consultations', 'contacts', 'settings', 'logs']
   },
   name: {
     type: String,
@@ -35,6 +35,10 @@ const adminSchema = new mongoose.Schema({
   profilePicture: {
     url: { type: String, default: '' },
     public_id: { type: String, default: '' }
+  },
+  currentSessionId: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

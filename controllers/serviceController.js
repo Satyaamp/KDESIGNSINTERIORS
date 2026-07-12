@@ -99,6 +99,22 @@ const createService = async (req, res) => {
       }
     });
     
+    // Record service creation log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'CREATE_SERVICE',
+      description: `Created service: "${service.title}"`,
+      metadata: {
+        serviceId: service._id,
+        serviceTitle: service.title,
+        status: service.status
+      },
+      req
+    });
+
     res.status(201).json({ success: true, service });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -117,6 +133,11 @@ const updateService = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Service not found' });
     }
     
+    const oldTitle = service.title;
+    const oldDescription = service.description;
+    const oldStatus = service.status;
+    const oldImagesCount = (service.images || []).length;
+
     if (title && title !== service.title) {
       service.title = title;
       service.slug = await makeUniqueSlug(Service, title);
@@ -176,6 +197,31 @@ const updateService = async (req, res) => {
     };
     
     await service.save();
+
+    const updatedFields = {};
+    if (title && title !== oldTitle) updatedFields.title = { old: oldTitle, new: title };
+    if (description && description !== oldDescription) updatedFields.description = { old: oldDescription.substring(0, 50) + '...', new: description.substring(0, 50) + '...' };
+    if (status && status !== oldStatus) updatedFields.status = { old: oldStatus, new: status };
+    if (service.images.length !== oldImagesCount) {
+      updatedFields.imagesCount = { old: oldImagesCount, new: service.images.length };
+    }
+
+    // Record service update log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_SERVICE',
+      description: `Updated service: "${service.title}"`,
+      metadata: {
+        serviceId: service._id,
+        serviceTitle: service.title,
+        updatedFields
+      },
+      req
+    });
+
     res.json({ success: true, service });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -205,6 +251,22 @@ const deleteService = async (req, res) => {
     }
     
     await service.deleteOne();
+
+    // Record service deletion log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_SERVICE',
+      description: `Deleted service: "${service.title}"`,
+      metadata: {
+        serviceId: service._id,
+        serviceTitle: service.title
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Service deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

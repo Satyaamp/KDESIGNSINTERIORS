@@ -253,6 +253,25 @@ const updateConsultationStatus = async (req, res) => {
     consultation.statusUpdatedAt = new Date();
     
     await consultation.save();
+
+    // Record activity log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_CONSULTATION',
+      description: `Updated status of consultation request from '${consultation.name}' to '${status}'`,
+      metadata: {
+        consultationId: consultation._id,
+        clientName: consultation.name,
+        email: consultation.email,
+        oldStatus: currentStatus,
+        newStatus: status
+      },
+      req
+    });
+
     res.json({ success: true, consultation });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -279,6 +298,24 @@ const deleteConsultation = async (req, res) => {
     }
 
     await consultation.deleteOne();
+
+    // Record activity log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_CONSULTATION',
+      description: `Deleted consultation request from '${consultation.name}'`,
+      metadata: {
+        consultationId: consultation._id,
+        clientName: consultation.name,
+        email: consultation.email,
+        projectType: consultation.projectType
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Consultation request deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

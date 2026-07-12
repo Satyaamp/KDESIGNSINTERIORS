@@ -73,6 +73,22 @@ const createTestimonial = async (req, res) => {
       status: status || 'Active'
     });
     
+    // Record create testimonial log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'CREATE_TESTIMONIAL',
+      description: `Added client testimonial for: "${testimonial.name}"`,
+      metadata: {
+        testimonialId: testimonial._id,
+        clientName: testimonial.name,
+        status: testimonial.status
+      },
+      req
+    });
+
     res.status(201).json({ success: true, testimonial });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -90,6 +106,13 @@ const updateTestimonial = async (req, res) => {
     if (!testimonial) {
       return res.status(404).json({ success: false, message: 'Testimonial not found' });
     }
+
+    const oldName = testimonial.name;
+    const oldDesignation = testimonial.designation;
+    const oldReview = testimonial.review;
+    const oldRating = testimonial.rating;
+    const oldStatus = testimonial.status;
+    const oldImage = testimonial.image ? testimonial.image.url : '';
     
     if (name) testimonial.name = name;
     if (designation) testimonial.designation = designation;
@@ -105,6 +128,31 @@ const updateTestimonial = async (req, res) => {
     }
     
     await testimonial.save();
+
+    const updatedFields = {};
+    if (name && name !== oldName) updatedFields.name = { old: oldName, new: name };
+    if (designation && designation !== oldDesignation) updatedFields.designation = { old: oldDesignation, new: designation };
+    if (review && review !== oldReview) updatedFields.review = { old: oldReview.substring(0, 50) + '...', new: review.substring(0, 50) + '...' };
+    if (rating && parseInt(rating) !== oldRating) updatedFields.rating = { old: oldRating, new: parseInt(rating) };
+    if (status && status !== oldStatus) updatedFields.status = { old: oldStatus, new: status };
+    if (req.file) updatedFields.image = { old: oldImage ? 'Previous Image' : 'None', new: 'Newly Uploaded Image' };
+
+    // Record update testimonial log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_TESTIMONIAL',
+      description: `Updated testimonial details for: "${testimonial.name}"`,
+      metadata: {
+        testimonialId: testimonial._id,
+        clientName: testimonial.name,
+        updatedFields
+      },
+      req
+    });
+
     res.json({ success: true, testimonial });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -126,6 +174,22 @@ const deleteTestimonial = async (req, res) => {
     }
     
     await testimonial.deleteOne();
+
+    // Record delete testimonial log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_TESTIMONIAL',
+      description: `Deleted testimonial for: "${testimonial.name}"`,
+      metadata: {
+        testimonialId: testimonial._id,
+        clientName: testimonial.name
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Testimonial deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

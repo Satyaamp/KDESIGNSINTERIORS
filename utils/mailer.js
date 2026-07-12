@@ -46,6 +46,22 @@ Content: ${text}`);
     }
   } catch (error) {
     console.error('Email Dispatch Error:', error);
+    try {
+      const { recordLog } = require('./logger');
+      await recordLog({
+        type: 'Error',
+        action: 'MAIL_DELIVERY_FAILED',
+        description: `Failed to dispatch email to '${to}' with subject '${subject}'`,
+        metadata: {
+          error: error.message,
+          stack: error.stack,
+          recipient: to,
+          subject
+        }
+      });
+    } catch (logErr) {
+      console.error('Failed to log mail dispatch error:', logErr);
+    }
     return false; // don't crash the server, return false
   }
 };

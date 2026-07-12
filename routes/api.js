@@ -15,13 +15,18 @@ const consultationController = require('../controllers/consultationController');
 const contactController = require('../controllers/contactController');
 const settingController = require('../controllers/settingController');
 const cityController = require('../controllers/cityController');
+const logController = require('../controllers/logController');
 
 // --- AUTH / USER PROFILE ROUTES ---
 router.post('/auth/login', authController.login);
 router.get('/auth/check-role/:username', authController.checkUsernameRole);
+router.post('/auth/logout', protect, authController.logout);
 router.get('/auth/profile', protect, authController.getProfile);
 router.put('/auth/profile', protect, upload.single('profilePicture'), authController.updateProfile);
 router.put('/auth/change-password', protect, authController.changePassword);
+router.get('/logs', protect, logController.getLogs);
+router.delete('/logs', protect, logController.clearAllLogs);
+router.get('/media', protect, logController.getMedia);
 
 // --- SUB-ADMINS ROLE MATRIX (SuperAdmin Only) ---
 router.get('/auth/admins', protect, authController.getAdmins);

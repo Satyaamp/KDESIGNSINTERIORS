@@ -30,6 +30,23 @@ const createCity = async (req, res) => {
       return res.status(400).json({ success: false, message: 'City already exists' });
     }
     const city = await City.create({ name, status: status || 'Active' });
+
+    // Record create city log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'CREATE_CITY',
+      description: `Added serving city: "${city.name}"`,
+      metadata: {
+        cityId: city._id,
+        cityName: city.name,
+        status: city.status
+      },
+      req
+    });
+
     res.status(201).json({ success: true, city });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -46,6 +63,9 @@ const updateCity = async (req, res) => {
     if (!city) {
       return res.status(404).json({ success: false, message: 'City not found' });
     }
+
+    const oldName = city.name;
+    const oldStatus = city.status;
     if (name) {
       const existing = await City.findOne({ name: name.toUpperCase(), _id: { $ne: req.params.id } });
       if (existing) {
@@ -57,6 +77,27 @@ const updateCity = async (req, res) => {
       city.status = status;
     }
     await city.save();
+
+    const updatedFields = {};
+    if (name && name !== oldName) updatedFields.name = { old: oldName, new: name };
+    if (status && status !== oldStatus) updatedFields.status = { old: oldStatus, new: status };
+
+    // Record update city log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_CITY',
+      description: `Updated serving city: "${city.name}"`,
+      metadata: {
+        cityId: city._id,
+        cityName: city.name,
+        updatedFields
+      },
+      req
+    });
+
     res.json({ success: true, city });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -73,6 +114,22 @@ const deleteCity = async (req, res) => {
       return res.status(404).json({ success: false, message: 'City not found' });
     }
     await city.deleteOne();
+
+    // Record delete city log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_CITY',
+      description: `Removed serving city: "${city.name}"`,
+      metadata: {
+        cityId: city._id,
+        cityName: city.name
+      },
+      req
+    });
+
     res.json({ success: true, message: 'City removed successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

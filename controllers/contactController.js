@@ -161,6 +161,8 @@ const updateContactStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Contact request not found' });
     }
 
+    const oldStatus = contact.status;
+
     if (status) {
       const currentStatus = contact.status;
 
@@ -189,6 +191,26 @@ const updateContactStatus = async (req, res) => {
     }
 
     await contact.save();
+
+    // Record activity log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_INQUIRY',
+      description: `Updated status of contact inquiry from '${contact.name}' to '${contact.status}'`,
+      metadata: {
+        inquiryId: contact._id,
+        clientName: contact.name,
+        email: contact.email,
+        subject: contact.subject,
+        oldStatus,
+        newStatus: contact.status
+      },
+      req
+    });
+
     res.json({ success: true, contact });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -205,6 +227,24 @@ const deleteContact = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Contact request not found' });
     }
     await contact.deleteOne();
+
+    // Record activity log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_INQUIRY',
+      description: `Deleted contact inquiry from '${contact.name}'`,
+      metadata: {
+        inquiryId: contact._id,
+        clientName: contact.name,
+        email: contact.email,
+        subject: contact.subject
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Contact request deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

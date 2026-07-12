@@ -15,6 +15,10 @@ app.set('trust proxy', 1);
 // Connect to Database
 connectDB();
 
+// Start logs background maintenance worker
+const { initLogsMaintenance } = require('./utils/logMaintenance');
+initLogsMaintenance();
+
 // Security Middlewares
 // Customize helmet to allow resource loading (like google maps, google fonts, cloudinary images, custom scripts)
 app.use(

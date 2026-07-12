@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_k_designs_key_123!';
 // @access  Public
 const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, force } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({
@@ -34,11 +34,54 @@ const login = async (req, res) => {
       });
     }
 
+    // Check if account has an active session on another device
+    if (admin.currentSessionId && force !== true && force !== 'true') {
+      return res.status(400).json({
+        success: false,
+        code: 'ACTIVE_SESSION_EXISTS',
+        message: 'This account is already logged in on another device.'
+      });
+    }
+
+    const oldSessionId = admin.currentSessionId;
+
+    // Generate new unique sessionId
+    const crypto = require('crypto');
+    const sessionId = crypto.randomUUID();
+    admin.currentSessionId = sessionId;
+    await admin.save();
+
     const token = jwt.sign(
-      { id: admin._id, username: admin.username },
+      { id: admin._id, username: admin.username, sessionId },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
+
+    // Record login activity
+    const { recordLog } = require('../utils/logger');
+    
+    // Log previous session termination if force takeover occurred
+    if (oldSessionId) {
+      await recordLog({
+        type: 'Logout',
+        adminId: admin._id,
+        username: admin.username,
+        action: 'FORCED_LOGOUT',
+        description: `Session terminated (logged in from another device)`,
+        metadata: { sessionId: oldSessionId },
+        req
+      });
+    }
+
+    await recordLog({
+      type: 'Login',
+      adminId: admin._id,
+      username: admin.username,
+      action: 'LOGIN',
+      description: `Admin '${admin.username}' logged in successfully`,
+      metadata: { sessionId },
+      req
+    });
 
     res.json({
       success: true,
@@ -75,9 +118,19 @@ const getProfile = async (req, res) => {
         message: 'Admin not found'
       });
     }
+    const mongoose = require('mongoose');
+    const isLocalDb = mongoose.connection.host.includes('localhost') || 
+                      mongoose.connection.host.includes('127.0.0.1') || 
+                      (process.env.MONGO_URI && process.env.MONGO_URI.includes('localhost')) ||
+                      (process.env.MONGO_URI && process.env.MONGO_URI.includes('127.0.0.1'));
+
     res.json({
       success: true,
-      admin
+      admin,
+      dbInfo: {
+        isLocal: isLocalDb,
+        name: mongoose.connection.name
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -217,6 +270,26 @@ const createAdmin = async (req, res) => {
       phone: phone || '',
       permissions: permissionsArray || ['services', 'projects', 'categories', 'blogs', 'testimonials', 'team', 'consultations', 'contacts', 'settings']
     });
+
+    // Record activity log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'CREATE_ADMIN',
+      description: `Created new admin account: '${newAdmin.username}' with role '${newAdmin.role}'`,
+      metadata: {
+        targetAdminId: newAdmin._id,
+        targetUsername: newAdmin.username,
+        targetRole: newAdmin.role,
+        targetName: newAdmin.name,
+        targetEmail: newAdmin.email,
+        targetPermissions: newAdmin.permissions
+      },
+      req
+    });
+
     res.status(201).json({ success: true, admin: newAdmin });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -237,6 +310,12 @@ const updateAdmin = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Admin account not found' });
     }
 
+    const oldUsername = admin.username;
+    const oldRole = admin.role;
+    const oldName = admin.name;
+    const oldEmail = admin.email;
+    const oldPermissions = [...admin.permissions];
+
     if (username) {
       const existing = await Admin.findOne({ username, _id: { $ne: req.params.id } });
       if (existing) {
@@ -245,7 +324,8 @@ const updateAdmin = async (req, res) => {
       admin.username = username;
     }
 
-    if (password && password.trim() !== '') {
+    const isPasswordUpdated = password && password.trim() !== '';
+    if (isPasswordUpdated) {
       admin.password = await bcrypt.hash(password, 10);
     }
 
@@ -267,6 +347,33 @@ const updateAdmin = async (req, res) => {
     }
 
     await admin.save();
+
+    const hasPermissionsChanged = JSON.stringify([...oldPermissions].sort()) !== JSON.stringify([...admin.permissions].sort());
+
+    const updatedFields = {};
+    if (username && username !== oldUsername) updatedFields.username = { old: oldUsername, new: username };
+    if (role && role !== oldRole) updatedFields.role = { old: oldRole, new: role };
+    if (name && name !== oldName) updatedFields.name = { old: oldName, new: name };
+    if (email && email !== oldEmail) updatedFields.email = { old: oldEmail, new: email };
+    if (hasPermissionsChanged) updatedFields.permissions = { old: oldPermissions, new: admin.permissions };
+    if (isPasswordUpdated) updatedFields.password = { updated: true };
+
+    // Record activity log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_ADMIN',
+      description: `Updated admin account: '${admin.username}'`,
+      metadata: {
+        targetAdminId: admin._id,
+        targetUsername: admin.username,
+        updatedFields
+      },
+      req
+    });
+
     res.json({ success: true, admin });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -298,6 +405,23 @@ const deleteAdmin = async (req, res) => {
     }
 
     await Admin.findByIdAndDelete(req.params.id);
+
+    // Record activity log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_ADMIN',
+      description: `Deleted admin account: '${admin.username}'`,
+      metadata: {
+        targetAdminId: admin._id,
+        targetUsername: admin.username,
+        targetEmail: admin.email
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Admin account deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -338,6 +462,43 @@ const checkUsernameRole = async (req, res) => {
   }
 };
 
+// @desc    Admin logout
+// @route   POST /api/auth/logout
+// @access  Private (Admin only)
+const logout = async (req, res) => {
+  try {
+    const { sessionTimeSeconds } = req.body;
+    
+    let durationText = '';
+    if (sessionTimeSeconds) {
+      const minutes = Math.floor(sessionTimeSeconds / 60);
+      const seconds = sessionTimeSeconds % 60;
+      durationText = ` (Session duration: ${minutes}m ${seconds}s)`;
+    }
+
+    // Clear session ID from database if it matches
+    if (req.admin.currentSessionId === req.userSessionId) {
+      req.admin.currentSessionId = null;
+      await req.admin.save();
+    }
+
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Logout',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'LOGOUT',
+      description: `Admin '${req.admin.username}' logged out successfully${durationText}`,
+      metadata: { sessionTimeSeconds, sessionId: req.userSessionId },
+      req
+    });
+
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   login,
   getProfile,
@@ -347,5 +508,6 @@ module.exports = {
   createAdmin,
   updateAdmin,
   deleteAdmin,
-  checkUsernameRole
+  checkUsernameRole,
+  logout
 };

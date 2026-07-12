@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Logs | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: flex-end;
+      background: var(--white);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+      margin-bottom: 25px;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .filter-group label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+    .filter-control {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      background-color: var(--bg-gray);
+      min-width: 150px;
+      color: var(--text-dark);
+    }
+    .btn-fetch {
+      background-color: var(--accent, #C5A880);
+      color: #121212;
+      border: none;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+    .btn-fetch:hover {
+      background-color: #d1b892;
+      transform: translateY(-1px);
+    }
+    .log-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+    .log-activity { background-color: rgba(245, 158, 11, 0.15); color: #d97706; }
+    .log-error { background-color: rgba(239, 68, 68, 0.15); color: #dc2626; }
+    .log-login { background-color: rgba(16, 185, 129, 0.15); color: #059669; }
+    .log-logout { background-color: rgba(99, 102, 241, 0.15); color: #4f46e5; }
+    
+    .metadata-view-btn {
+      background: none;
+      border: none;
+      color: var(--accent, #C5A880);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 4px 8px;
+      text-decoration: underline;
+    }
+    .metadata-view-btn:hover {
+      color: #d1b892;
+    }
+
+    /* Modal Styling */
+    .log-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+    }
+    .log-modal-content {
+      background: var(--white);
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 800px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      position: relative;
+    }
+    .log-modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      cursor: pointer;
+      color: var(--text-gray);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar"></aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>System Logs & Audit Trail</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label for="filter-type">Log Type</label>
+          <select id="filter-type" class="filter-control">
+            <option value="">All Logs</option>
+            <option value="Activity">Activity</option>
+            <option value="Error">Error</option>
+            <option value="Login">Login</option>
+            <option value="Logout">Logout</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label for="filter-start">Start Date</label>
+          <input type="date" id="filter-start" class="filter-control">
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-end">End Date</label>
+          <input type="date" id="filter-end" class="filter-control">
+        </div>
+
+        <button id="btn-fetch-logs" class="btn-fetch">
+          <i class="fas fa-sync-alt"></i> Fetch Logs
+        </button>
+        <button id="btn-export-logs-excel" class="btn-fetch" style="background-color: #10b981;">
+          <i class="fas fa-file-excel"></i> Export Excel
+        </button>
+        <button id="btn-export-logs-pdf" class="btn-fetch" style="background-color: #ef4444;">
+          <i class="fas fa-file-pdf"></i> Export PDF
+        </button>
+        <button id="btn-clear-logs" class="btn-fetch" style="background-color: #dc2626; display: none;">
+          <i class="fas fa-trash-alt"></i> Clear Logs
+        </button>
+      </div>
+
+      <!-- Table Section -->
+      <div class="data-card">
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Type</th>
+                <th>Operator</th>
+                <th>Action</th>
+                <th>Description</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="logs-table-body">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-gray);">
+                  <i class="fas fa-info-circle" style="font-size: 1.5rem; margin-bottom: 10px; display: block; color: var(--accent);"></i>
+                  Logs loaded on-demand. Click <strong>Fetch Logs</strong> to retrieve the audit trail records.
+                  <span style="display:block; margin-top:8px; font-size:0.8rem; opacity:0.8; color:var(--accent);">
+                    <i class="fas fa-exclamation-circle" style="margin-right:4px;"></i> Note: To optimize loading speeds, fetching without specifying dates defaults to the last 7 days.
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="logs-pagination" style="display: none; justify-content: flex-end; padding: 20px; gap: 10px;">
+          <!-- Will be rendered dynamically -->
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="log-modal" id="log-detail-modal">
+    <div class="log-modal-content">
+      <button class="log-modal-close" id="close-modal-btn"><i class="fas fa-times"></i></button>
+      <h3 style="margin-bottom: 15px; font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Audit Log Metadata Details</h3>
+      <div id="log-metadata-container" style="overflow-x: auto; margin-top: 10px;"></div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

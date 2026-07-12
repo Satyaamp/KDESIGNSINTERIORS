@@ -194,6 +194,23 @@ const createBlog = async (req, res) => {
       }
     });
     
+    // Record create blog log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'CREATE_BLOG',
+      description: `Created blog post: "${blog.title}"`,
+      metadata: {
+        blogId: blog._id,
+        blogTitle: blog.title,
+        category: blog.category,
+        status: blog.status
+      },
+      req
+    });
+
     res.status(201).json({ success: true, blog });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -211,6 +228,12 @@ const updateBlog = async (req, res) => {
     if (!blog) {
       return res.status(404).json({ success: false, message: 'Blog not found' });
     }
+
+    const oldTitle = blog.title;
+    const oldContent = blog.content;
+    const oldCategory = blog.category;
+    const oldStatus = blog.status;
+    const oldImagesCount = (blog.images || []).length;
     
     if (title && title !== blog.title) {
       blog.title = title;
@@ -275,6 +298,30 @@ const updateBlog = async (req, res) => {
     };
     
     await blog.save();
+
+    const updatedFields = {};
+    if (title && title !== oldTitle) updatedFields.title = { old: oldTitle, new: title };
+    if (content && content !== oldContent) updatedFields.content = { old: oldContent.substring(0, 50) + '...', new: content.substring(0, 50) + '...' };
+    if (category && category !== oldCategory) updatedFields.category = { old: oldCategory, new: category };
+    if (status && status !== oldStatus) updatedFields.status = { old: oldStatus, new: status };
+    if (blog.images.length !== oldImagesCount) updatedFields.imagesCount = { old: oldImagesCount, new: blog.images.length };
+
+    // Record update blog log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_BLOG',
+      description: `Updated blog post: "${blog.title}"`,
+      metadata: {
+        blogId: blog._id,
+        blogTitle: blog.title,
+        updatedFields
+      },
+      req
+    });
+
     res.json({ success: true, blog });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -303,6 +350,22 @@ const deleteBlog = async (req, res) => {
     }
     
     await blog.deleteOne();
+
+    // Record delete blog log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_BLOG',
+      description: `Deleted blog post: "${blog.title}"`,
+      metadata: {
+        blogId: blog._id,
+        blogTitle: blog.title
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Blog deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

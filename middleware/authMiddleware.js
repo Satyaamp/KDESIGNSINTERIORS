@@ -27,7 +27,18 @@ const protect = async (req, res, next) => {
         message: 'Access denied. Admin account not found.'
       });
     }
+
+    // Verify unique session concurrency
+    if (decoded.sessionId && admin.currentSessionId && decoded.sessionId !== admin.currentSessionId) {
+      return res.status(401).json({
+        success: false,
+        code: 'SESSION_INVALIDATED',
+        message: 'Session invalidated. You have been logged in from another device.'
+      });
+    }
+
     req.admin = admin;
+    req.userSessionId = decoded.sessionId; // Pass down for logout cleanup
     next();
   } catch (error) {
     return res.status(401).json({

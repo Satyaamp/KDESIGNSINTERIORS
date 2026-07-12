@@ -208,6 +208,23 @@ const createProject = async (req, res) => {
       }
     });
     
+    // Record project creation log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'CREATE_PROJECT',
+      description: `Created project: "${project.title}"`,
+      metadata: {
+        projectId: project._id,
+        projectTitle: project.title,
+        category: project.category,
+        status: project.status
+      },
+      req
+    });
+
     res.status(201).json({ success: true, project });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -240,6 +257,14 @@ const updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
     
+    const oldTitle = project.title;
+    const oldDescription = project.description;
+    const oldCategory = project.category;
+    const oldLocation = project.location;
+    const oldStatus = project.status;
+    const oldImagesCount = (project.images || []).length;
+    const oldFloorPlansCount = (project.floorPlans || []).length;
+
     if (title && title !== project.title) {
       project.title = title;
       project.slug = await makeUniqueSlug(Project, title);
@@ -277,33 +302,35 @@ const updateProject = async (req, res) => {
       keptFpIds = project.floorPlans.map(fp => fp.public_id);
     }
     
-    // Delete discarded images
+    // Delete removed images from Cloudinary
     const imagesToDelete = project.images.filter(img => !keptImageIds.includes(img.public_id));
     for (const img of imagesToDelete) {
       await deleteImage(img.public_id);
     }
-    let updatedImages = project.images.filter(img => keptImageIds.includes(img.public_id));
-    
-    // Delete discarded floor plans
-    const fpToDelete = project.floorPlans.filter(fp => !keptFpIds.includes(fp.public_id));
-    for (const fp of fpToDelete) {
+
+    // Delete removed floor plans from Cloudinary
+    const fpsToDelete = project.floorPlans.filter(fp => !keptFpIds.includes(fp.public_id));
+    for (const fp of fpsToDelete) {
       await deleteImage(fp.public_id);
     }
-    let updatedFloorPlans = project.floorPlans.filter(fp => keptFpIds.includes(fp.public_id));
-    
-    // Upload new files
-    if (req.files) {
-      if (req.files.images) {
-        for (const file of req.files.images) {
-          const img = await uploadImage(file.path, 'projects');
-          updatedImages.push(img);
-        }
+
+    // Append new uploaded images & floor plans
+    const updatedImages = project.images.filter(img => keptImageIds.includes(img.public_id));
+    const updatedFloorPlans = project.floorPlans.filter(fp => keptFpIds.includes(fp.public_id));
+
+    if (req.files && req.files.images) {
+      const filesList = Array.isArray(req.files.images) ? req.files.images : [req.files.images];
+      for (const file of filesList) {
+        const img = await uploadImage(file.path, 'projects');
+        updatedImages.push(img);
       }
-      if (req.files.floorPlans) {
-        for (const file of req.files.floorPlans) {
-          const fp = await uploadImage(file.path, 'floorplans');
-          updatedFloorPlans.push(fp);
-        }
+    }
+
+    if (req.files && req.files.floorPlans) {
+      const filesList = Array.isArray(req.files.floorPlans) ? req.files.floorPlans : [req.files.floorPlans];
+      for (const file of filesList) {
+        const fp = await uploadImage(file.path, 'floorplans');
+        updatedFloorPlans.push(fp);
       }
     }
     
@@ -317,6 +344,32 @@ const updateProject = async (req, res) => {
     };
     
     await project.save();
+
+    const updatedFields = {};
+    if (title && title !== oldTitle) updatedFields.title = { old: oldTitle, new: title };
+    if (description && description !== oldDescription) updatedFields.description = { old: oldDescription.substring(0, 50) + '...', new: description.substring(0, 50) + '...' };
+    if (category && category !== oldCategory) updatedFields.category = { old: oldCategory, new: category };
+    if (location !== undefined && location !== oldLocation) updatedFields.location = { old: oldLocation, new: location };
+    if (status && status !== oldStatus) updatedFields.status = { old: oldStatus, new: status };
+    if (project.images.length !== oldImagesCount) updatedFields.imagesCount = { old: oldImagesCount, new: project.images.length };
+    if (project.floorPlans.length !== oldFloorPlansCount) updatedFields.floorPlansCount = { old: oldFloorPlansCount, new: project.floorPlans.length };
+
+    // Record project update log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_PROJECT',
+      description: `Updated project: "${project.title}"`,
+      metadata: {
+        projectId: project._id,
+        projectTitle: project.title,
+        updatedFields
+      },
+      req
+    });
+
     res.json({ success: true, project });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -341,6 +394,22 @@ const deleteProject = async (req, res) => {
     }
     
     await project.deleteOne();
+
+    // Record project deletion log
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'DELETE_PROJECT',
+      description: `Deleted project: "${project.title}"`,
+      metadata: {
+        projectId: project._id,
+        projectTitle: project.title
+      },
+      req
+    });
+
     res.json({ success: true, message: 'Project deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

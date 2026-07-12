@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(document).ready(function () {
   // Prevent Back-button browser cache access to dashboard after logout
   window.addEventListener('pageshow', function (event) {
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
@@ -6,12 +6,24 @@ $(document).ready(function() {
     }
   });
 
+  const sessionStartTime = Date.now();
   const path = window.location.pathname;
-  
+
+  // Global AJAX handler to intercept session invalidation
+  $(document).ajaxError(function (event, jqXHR, ajaxSettings, thrownError) {
+    if (jqXHR.status === 401 && jqXHR.responseJSON && jqXHR.responseJSON.code === 'SESSION_INVALIDATED') {
+      alert('Your session has been terminated because this account logged in from another device.');
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      document.cookie = "admin_access_authorized=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = '/admin/login';
+    }
+  });
+
   // 1. Session Protection Checks
   const token = localStorage.getItem('admin_token');
   const isLoggedIn = !!token;
-  
+
   if (path.includes('admin/login')) {
     if (isLoggedIn) {
       window.location.href = '/admin/dashboard';
@@ -24,7 +36,7 @@ $(document).ready(function() {
 
     // Inject admin sidebar dynamically from template
     if ($('aside.admin-sidebar').length) {
-      $('aside.admin-sidebar').load('/admin/components/sidebar.html', function() {
+      $('aside.admin-sidebar').load('/admin/components/sidebar.html', function () {
         // Initialize collapsible sidebar state from preference
         const isSidebarCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
         if (isSidebarCollapsed) {
@@ -58,7 +70,7 @@ $(document).ready(function() {
     }
 
     // Collapsed state click transition bindings
-    $(document).on('click', '#sidebar-toggle-btn', function(e) {
+    $(document).on('click', '#sidebar-toggle-btn', function (e) {
       e.preventDefault();
       const sidebar = $('.admin-sidebar');
       sidebar.toggleClass('collapsed');
@@ -81,23 +93,23 @@ $(document).ready(function() {
     }
 
     // Mobile navigation toggle click handler
-    $(document).on('click', '#mobile-nav-toggle', function(e) {
+    $(document).on('click', '#mobile-nav-toggle', function (e) {
       e.preventDefault();
       e.stopPropagation();
       $('.admin-sidebar').toggleClass('open');
     });
 
     // Close sidebar on mobile when clicking outside
-    $(document).on('click', function(e) {
+    $(document).on('click', function (e) {
       if ($(window).width() <= 992) {
         if (!$(e.target).closest('.admin-sidebar').length && !$(e.target).closest('#mobile-nav-toggle').length) {
           $('.admin-sidebar').removeClass('open');
         }
       }
     });
-    
+
     // Shared Visual Rich Editor Helper (Quill)
-    window.createRichEditor = function(selector, placeholderText) {
+    window.createRichEditor = function (selector, placeholderText) {
       if ($(selector).length) {
         return new Quill(selector, {
           theme: 'snow',
@@ -107,7 +119,7 @@ $(document).ready(function() {
               ['bold', 'italic', 'underline', 'strike'],        // toggle styles
               ['blockquote'],                                   // notepad note
               [{ 'header': 2 }, { 'header': 3 }],
-              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
               [{ 'color': [] }, { 'background': [] }],          // highlights
               ['clean']                                         // clear formatting
             ]
@@ -116,9 +128,9 @@ $(document).ready(function() {
       }
       return null;
     };
-    
+
     // Shared Live Preview Overlay Simulator
-    window.openLivePreview = function(title, categoryName, contentHtml, imageUrls) {
+    window.openLivePreview = function (title, categoryName, contentHtml, imageUrls) {
       $('#admin-preview-overlay').remove();
 
       let imageContent = '<div style="color:#aaa; font-size:14px; text-align:center;">No images chosen yet</div>';
@@ -218,14 +230,14 @@ $(document).ready(function() {
       `;
 
       $('body').append(overlayHtml);
-      
+
       // Bind close click
-      $('#close-preview-btn').click(function(e) {
+      $('#close-preview-btn').click(function (e) {
         e.preventDefault();
         $('#admin-preview-overlay').remove();
       });
     };
-    
+
     // Enforce fine-grained CRUD elements visibility
     function enforceCrudButtons() {
       const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
@@ -265,7 +277,7 @@ $(document).ready(function() {
 
       if (!hasAdd) {
         $('.btn-add, #btn-add, [id^="btn-add"], .btn-create, #open-modal').hide();
-        $('button, a').each(function() {
+        $('button, a').each(function () {
           const txt = $(this).text().trim().toLowerCase();
           if (txt === 'add' || txt === 'create' || txt.startsWith('add ') || txt.startsWith('create ')) {
             $(this).hide();
@@ -286,16 +298,16 @@ $(document).ready(function() {
     let crudObserver = null;
     function watchCrudElements() {
       if (crudObserver) crudObserver.disconnect();
-      
-      crudObserver = new MutationObserver(function() {
+
+      crudObserver = new MutationObserver(function () {
         enforceCrudButtons();
       });
-      
+
       crudObserver.observe(document.body, {
         childList: true,
         subtree: true
       });
-      
+
       // Run once immediately
       enforceCrudButtons();
     }
@@ -317,12 +329,24 @@ $(document).ready(function() {
         $('.header-user i.fa-user-circle').hide();
       }
 
+      // Render DB indicator badge ONLY on localhost/127.0.0.1
+      $('.db-indicator-badge').remove();
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const cachedDbInfo = JSON.parse(localStorage.getItem('admin_db_info') || '{}');
+        if (cachedDbInfo.name) {
+          const isLocal = cachedDbInfo.isLocal;
+          const label = isLocal ? 'Local DB' : 'Cloud DB';
+          const badgeClass = isLocal ? 'local-db' : 'cloud-db';
+          $('.header-user').append(`<span class="db-indicator-badge ${badgeClass}" title="Database: ${cachedDbInfo.name}">${label}</span>`);
+        }
+      }
+
       // Hide menus based on permissions
-      $('.sidebar-menu li').each(function() {
+      $('.sidebar-menu li').each(function () {
         const a = $(this).find('a');
         const href = a.attr('href');
         if (!href) return;
-        
+
         const module = href.split('/').pop(); // Extract e.g. "services" from "/admin/services"
         if (module === 'dashboard' || module === 'login') return;
 
@@ -335,7 +359,7 @@ $(document).ready(function() {
           }
           return;
         }
-        
+
         // Handle My Profile tab specifically
         if (module === 'profile') return;
 
@@ -362,7 +386,7 @@ $(document).ready(function() {
     function highlightActiveAdminSidebarLink() {
       const path = window.location.pathname;
       $('.sidebar-menu li').removeClass('active');
-      $('.sidebar-menu li').each(function() {
+      $('.sidebar-menu li').each(function () {
         const a = $(this).find('a');
         const href = a.attr('href');
         if (href && (path === href || path.includes(href))) {
@@ -382,9 +406,12 @@ $(document).ready(function() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         if (res.success && res.admin) {
           localStorage.setItem('admin_user', JSON.stringify(res.admin));
+          if (res.dbInfo) {
+            localStorage.setItem('admin_db_info', JSON.stringify(res.dbInfo));
+          }
           // Re-apply guards with freshly fetched configurations
           applyPermissionsGuards();
         }
@@ -398,7 +425,7 @@ $(document).ready(function() {
   // Setup Global AJAX Headers for JWT Auth & Disable Caching
   $.ajaxSetup({
     cache: false,
-    beforeSend: function(xhr) {
+    beforeSend: function (xhr) {
       const activeToken = localStorage.getItem('admin_token');
       if (activeToken) {
         xhr.setRequestHeader('Authorization', `Bearer ${activeToken}`);
@@ -407,7 +434,7 @@ $(document).ready(function() {
   });
 
   // Global loading state for submit buttons during forms submission
-  $(document).on('submit', 'form', function() {
+  $(document).on('submit', 'form', function () {
     const form = $(this);
     const submitBtn = form.find('button[type="submit"]');
     if (submitBtn.length && !submitBtn.prop('disabled')) {
@@ -418,7 +445,7 @@ $(document).ready(function() {
   });
 
   // Global loading state for delete actions when AJAX DELETE starts
-  $(document).ajaxSend(function(event, xhr, settings) {
+  $(document).ajaxSend(function (event, xhr, settings) {
     if (settings.type === 'DELETE') {
       const activeBtn = $(document.activeElement);
       if (activeBtn.length && (activeBtn.hasClass('icon-btn-delete') || activeBtn.find('.fa-trash-alt').length || activeBtn.hasClass('delete-btn') || activeBtn.attr('class')?.includes('delete'))) {
@@ -429,8 +456,8 @@ $(document).ready(function() {
   });
 
   // Global AJAX completion listener to restore button states (submits and deletes)
-  $(document).ajaxComplete(function() {
-    $('button:disabled').each(function() {
+  $(document).ajaxComplete(function () {
+    $('button:disabled').each(function () {
       const btn = $(this);
       const originalHtml = btn.data('original-html');
       if (originalHtml) {
@@ -441,16 +468,30 @@ $(document).ready(function() {
   });
 
   // Admin Logout Action
-  $(document).on('click', '#admin-logout', function(e) {
+  $(document).on('click', '#admin-logout', function (e) {
     e.preventDefault();
     if (confirm('Are you sure you want to log out?')) {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
-      
-      // Delete the gatekeeper cookie so the secret link is required next time!
-      document.cookie = "admin_access_authorized=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      
-      window.location.href = '/admin/login';
+      const sessionTimeSeconds = typeof sessionStartTime !== 'undefined' ? Math.floor((Date.now() - sessionStartTime) / 1000) : 0;
+
+      // Dispatch server-side logout request to record session duration
+      $.ajax({
+        url: '/api/auth/logout',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
+        contentType: 'application/json',
+        data: JSON.stringify({ sessionTimeSeconds }),
+        complete: function () {
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_user');
+
+          // Delete the gatekeeper cookie so the secret link is required next time!
+          document.cookie = "admin_access_authorized=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+          window.location.href = '/admin/login';
+        }
+      });
     }
   });
 
@@ -481,11 +522,13 @@ $(document).ready(function() {
     initAdminSubAccounts();
   } else if (path.includes('admin/profile')) {
     initAdminProfile();
+  } else if (path.includes('admin/logs')) {
+    initAdminLogs();
   }
 });
 
 // Dynamic Module Refresh Loader Binder
-window.setupModuleRefresh = function(headerSelector, buttonId, loadFunction) {
+window.setupModuleRefresh = function (headerSelector, buttonId, loadFunction) {
   const cardHeader = $(headerSelector).first();
   if (cardHeader.length && !$(`#${buttonId}`).length) {
     cardHeader.css({
@@ -493,21 +536,21 @@ window.setupModuleRefresh = function(headerSelector, buttonId, loadFunction) {
       'justify-content': 'space-between',
       'align-items': 'center'
     });
-    
+
     const addButton = cardHeader.find('button, .btn-admin-primary, .btn-primary');
     const refreshBtnHtml = `
       <button id="${buttonId}" class="admin-btn-refresh" title="Refresh Data">
         <i class="fas fa-sync-alt"></i>
       </button>
     `;
-    
+
     if (addButton.length) {
       addButton.before(refreshBtnHtml);
     } else {
       cardHeader.append(refreshBtnHtml);
     }
 
-    $(document).off('click', `#${buttonId}`).on('click', `#${buttonId}`, function(e) {
+    $(document).off('click', `#${buttonId}`).on('click', `#${buttonId}`, function (e) {
       e.preventDefault();
       const btn = $(this);
       const icon = btn.find('i');
@@ -536,13 +579,13 @@ function showToast(message, type = 'success') {
     $('body').append('<div id="admin-toast" class="admin-toast"></div>');
     toast = $('#admin-toast');
   }
-  
+
   toast.removeClass('success error warning show')
-       .addClass(type)
-       .html(`<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`);
-       
+    .addClass(type)
+    .html(`<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`);
+
   setTimeout(() => toast.addClass('show'), 100);
-  
+
   setTimeout(() => {
     toast.removeClass('show');
   }, 4000);
@@ -551,7 +594,7 @@ function showToast(message, type = 'success') {
 // Highlights current tab in Sidebar
 function setupSidebarNavigation(path) {
   $('.sidebar-menu li').removeClass('active');
-  $('.sidebar-menu a').each(function() {
+  $('.sidebar-menu a').each(function () {
     const href = $(this).attr('href');
     if (href && href.includes('categories')) {
       $(this).html('<i class="fas fa-database"></i> Master');
@@ -566,21 +609,21 @@ function setupSidebarNavigation(path) {
 function setupLoginHandler() {
   // Real-time username role preview / existence checker
   let debounceTimeout = null;
-  $('#username').on('input', function() {
+  $('#username').on('input', function () {
     clearTimeout(debounceTimeout);
     const usernameVal = $(this).val().trim();
     const badge = $('#username-role-badge');
-    
+
     if (!usernameVal) {
       badge.hide().text('');
       return;
     }
 
-    debounceTimeout = setTimeout(function() {
+    debounceTimeout = setTimeout(function () {
       $.ajax({
         url: `/api/auth/check-role/${encodeURIComponent(usernameVal)}`,
         method: 'GET',
-        success: function(res) {
+        success: function (res) {
           if (res.success) {
             badge.css({
               'color': '#34d399',
@@ -588,7 +631,7 @@ function setupLoginHandler() {
             }).html(`<i class="fas fa-check-circle" style="margin-right:5px;"></i>Role: ${res.role}`);
           }
         },
-        error: function(err) {
+        error: function (err) {
           badge.css({
             'color': '#f87171',
             'display': 'block'
@@ -598,27 +641,32 @@ function setupLoginHandler() {
     }, 400); // 400ms debounce
   });
 
-  $('#admin-login-form').submit(function(e) {
+  $('#admin-login-form').submit(function (e) {
     e.preventDefault();
-    const btn = $(this).find('button[type="submit"]');
-    
+    submitLogin(false);
+  });
+
+  function submitLogin(forceFlag) {
+    const btn = $('#admin-login-form').find('button[type="submit"]');
+
     // Animate button to loading state
     btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Verifying...');
 
     const data = {
       username: $('#username').val(),
-      password: $('#password').val()
+      password: $('#password').val(),
+      force: forceFlag
     };
 
     $.ajax({
       url: '/api/auth/login',
       method: 'POST',
       data: data,
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           localStorage.setItem('admin_token', res.token);
           localStorage.setItem('admin_user', JSON.stringify(res.admin));
-          
+
           // Render beautiful success overlay
           const overlayHtml = `
             <div id="login-success-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(18, 18, 18, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.4s ease;">
@@ -627,11 +675,11 @@ function setupLoginHandler() {
               <div class="loader-status" style="font-size: 0.82rem; color: #C5A880; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; text-align: center; transition: all 0.25s ease;">Verifying credentials...</div>
             </div>
           `;
-          
+
           $('body').append(overlayHtml);
-          
+
           // Trigger CSS fade-in
-          setTimeout(function() {
+          setTimeout(function () {
             $('#login-success-overlay').css('opacity', '1');
           }, 50);
 
@@ -647,15 +695,15 @@ function setupLoginHandler() {
             { time: 9400, text: 'Configuring dashboard workspace...' }
           ];
 
-          statusMessages.forEach(function(msg) {
-            setTimeout(function() {
+          statusMessages.forEach(function (msg) {
+            setTimeout(function () {
               const statusEl = $('.loader-status');
               statusEl.css({
                 'opacity': '0',
                 'transform': 'translateY(-5px)'
               });
-              
-              setTimeout(function() {
+
+              setTimeout(function () {
                 statusEl.text(msg.text).css({
                   'opacity': '1',
                   'transform': 'translateY(0)'
@@ -665,23 +713,32 @@ function setupLoginHandler() {
           });
 
           // Final Redirect at 10 seconds
-          setTimeout(function() {
+          setTimeout(function () {
             window.location.href = '/admin/dashboard';
           }, 10000);
         }
       },
-      error: function(err) {
+      error: function (err) {
+        if (err.responseJSON && err.responseJSON.code === 'ACTIVE_SESSION_EXISTS') {
+          if (confirm('This account is currently active on another device. Would you like to terminate that session and log in here?')) {
+            submitLogin(true);
+            return;
+          }
+          btn.prop('disabled', false).html('Login');
+          return;
+        }
+
         const errorMsg = err.responseJSON ? err.responseJSON.message : 'Invalid credentials';
-        
+
         // Show clean dynamic error state on button
-        btn.html('Invalid Credentials').css('background-color', '#ef4444');
-        
-        setTimeout(function() {
+        btn.html(errorMsg).css('background-color', '#ef4444');
+
+        setTimeout(function () {
           btn.prop('disabled', false).html('Login').css('background-color', 'var(--accent, #C5A880)');
         }, 1500);
       }
     });
-  });
+  }
 }
 
 // --- Dashboard Statistics Loader ---
@@ -704,7 +761,7 @@ function loadDashboardStats(callback) {
   ];
 
   // Hide stats cards based on Role Matrix permissions
-  $('.widget-card').each(function() {
+  $('.widget-card').each(function () {
     const module = $(this).attr('data-module');
     if (!module) return;
     if (role !== 'SuperAdmin' && !permissions.includes(module) && !permissions.includes(module + '_view')) {
@@ -747,7 +804,7 @@ function loadDashboardStats(callback) {
   // Fetch only permitted modules
   endpoints.forEach(ep => {
     if (role === 'SuperAdmin' || permissions.includes(ep.module) || permissions.includes(ep.module + '_view')) {
-      const p = $.get(ep.url, function(res) {
+      const p = $.get(ep.url, function (res) {
         if (res.success) {
           const count = res.pagination ? res.pagination.total : (res[ep.countKey] ? res[ep.countKey].length : 0);
           $(`#stat-${ep.key}`).text(count);
@@ -790,17 +847,17 @@ function escapeHtml(str) {
 }
 
 // Download Bookings Excel Helper
-$(document).on('click', '#download-bookings-report', function() {
+$(document).on('click', '#download-bookings-report', function () {
   const btn = $(this);
   btn.prop('disabled', true).html('<i class="fas fa-circle-notch fa-spin"></i> Exporting...');
-  $.get('/api/consultations?limit=1000', function(res) {
+  $.get('/api/consultations?limit=1000', function (res) {
     if (res.success && res.consultations) {
       let rowsHtml = '';
       res.consultations.forEach(c => {
-        const floorPlanLink = c.floorPlan && c.floorPlan.url 
-          ? `<a href="${c.floorPlan.url}" style="color:#2563eb; text-decoration:underline;">View Floor Plan</a>` 
+        const floorPlanLink = c.floorPlan && c.floorPlan.url
+          ? `<a href="${c.floorPlan.url}" style="color:#2563eb; text-decoration:underline;">View Floor Plan</a>`
           : '<span style="color:#9ca3af; font-style:italic;">None</span>';
-        
+
         let refImagesHtml = '<span style="color:#9ca3af; font-style:italic;">None</span>';
         if (c.images && c.images.length > 0) {
           refImagesHtml = c.images.map((img, idx) => `<a href="${img.url}" style="color:#2563eb; text-decoration:underline;">Image ${idx + 1}</a>`).join(', ');
@@ -904,16 +961,16 @@ $(document).on('click', '#download-bookings-report', function() {
     } else {
       alert('No bookings data available.');
     }
-  }).always(function() {
+  }).always(function () {
     btn.prop('disabled', false).html('<i class="fas fa-download"></i> Bookings Report (Excel)');
   });
 });
 
 // Download Inquiries Excel Helper
-$(document).on('click', '#download-inquiries-report', function() {
+$(document).on('click', '#download-inquiries-report', function () {
   const btn = $(this);
   btn.prop('disabled', true).html('<i class="fas fa-circle-notch fa-spin"></i> Exporting...');
-  $.get('/api/contacts?limit=1000', function(res) {
+  $.get('/api/contacts?limit=1000', function (res) {
     if (res.success && res.contacts) {
       let rowsHtml = '';
       res.contacts.forEach(c => {
@@ -1005,16 +1062,16 @@ $(document).on('click', '#download-inquiries-report', function() {
     } else {
       alert('No inquiries data available.');
     }
-  }).always(function() {
+  }).always(function () {
     btn.prop('disabled', false).html('<i class="fas fa-download"></i> Inquiries Report (Excel)');
   });
 });
 
 // Download Services Excel Helper
-$(document).on('click', '#download-services-report', function() {
+$(document).on('click', '#download-services-report', function () {
   const btn = $(this);
   btn.prop('disabled', true).html('<i class="fas fa-circle-notch fa-spin"></i> Exporting...');
-  $.get('/api/services?limit=1000&admin=true', function(res) {
+  $.get('/api/services?limit=1000&admin=true', function (res) {
     if (res.success && res.services) {
       let rowsHtml = '';
       res.services.forEach(s => {
@@ -1098,16 +1155,16 @@ $(document).on('click', '#download-services-report', function() {
     } else {
       alert('No services data available.');
     }
-  }).always(function() {
+  }).always(function () {
     btn.prop('disabled', false).html('<i class="fas fa-download"></i> Services Report (Excel)');
   });
 });
 
 // Download Projects Excel Helper
-$(document).on('click', '#download-projects-report', function() {
+$(document).on('click', '#download-projects-report', function () {
   const btn = $(this);
   btn.prop('disabled', true).html('<i class="fas fa-circle-notch fa-spin"></i> Exporting...');
-  $.get('/api/projects?limit=1000&admin=true', function(res) {
+  $.get('/api/projects?limit=1000&admin=true', function (res) {
     if (res.success && res.projects) {
       let rowsHtml = '';
       res.projects.forEach(p => {
@@ -1115,7 +1172,7 @@ $(document).on('click', '#download-projects-report', function() {
         if (p.images && p.images.length > 0) {
           imagesHtml = p.images.map((img, idx) => `<a href="${img.url}" style="color:#2563eb; text-decoration:underline;">Image ${idx + 1}</a>`).join(', ');
         }
-        
+
         let floorPlansHtml = '<span style="color:#9ca3af; font-style:italic;">None</span>';
         if (p.floorPlans && p.floorPlans.length > 0) {
           floorPlansHtml = p.floorPlans.map((fp, idx) => `<a href="${fp.url}" style="color:#2563eb; text-decoration:underline;">Plan ${idx + 1}</a>`).join(', ');
@@ -1201,16 +1258,16 @@ $(document).on('click', '#download-projects-report', function() {
     } else {
       alert('No projects data available.');
     }
-  }).always(function() {
+  }).always(function () {
     btn.prop('disabled', false).html('<i class="fas fa-download"></i> Projects Report (Excel)');
   });
 });
 
 // Download Blogs Excel Helper
-$(document).on('click', '#download-blogs-report', function() {
+$(document).on('click', '#download-blogs-report', function () {
   const btn = $(this);
   btn.prop('disabled', true).html('<i class="fas fa-circle-notch fa-spin"></i> Exporting...');
-  $.get('/api/blogs?limit=1000&admin=true', function(res) {
+  $.get('/api/blogs?limit=1000&admin=true', function (res) {
     if (res.success && res.blogs) {
       let rowsHtml = '';
       res.blogs.forEach(b => {
@@ -1297,16 +1354,16 @@ $(document).on('click', '#download-blogs-report', function() {
     } else {
       alert('No blogs data available.');
     }
-  }).always(function() {
+  }).always(function () {
     btn.prop('disabled', false).html('<i class="fas fa-download"></i> Blogs Report (Excel)');
   });
 });
 
 // Download Testimonials Excel Helper
-$(document).on('click', '#download-testimonials-report', function() {
+$(document).on('click', '#download-testimonials-report', function () {
   const btn = $(this);
   btn.prop('disabled', true).html('<i class="fas fa-circle-notch fa-spin"></i> Exporting...');
-  $.get('/api/testimonials?limit=1000&admin=true', function(res) {
+  $.get('/api/testimonials?limit=1000&admin=true', function (res) {
     if (res.success && res.testimonials) {
       let rowsHtml = '';
       res.testimonials.forEach(t => {
@@ -1382,7 +1439,7 @@ $(document).on('click', '#download-testimonials-report', function() {
     } else {
       alert('No testimonials data available.');
     }
-  }).always(function() {
+  }).always(function () {
     btn.prop('disabled', false).html('<i class="fas fa-download"></i> Testimonials Report (Excel)');
   });
 });
@@ -1403,7 +1460,7 @@ function downloadExcelFile(htmlContent, fileName) {
 function initAdminServices() {
   let editId = null;
   let keepExistingImages = [];
-  
+
   // Initialize Quill Editor for Services Description
   const quill = window.createRichEditor('#service-description-editor', 'Write a detailed description about the service...');
 
@@ -1411,12 +1468,12 @@ function initAdminServices() {
   loadServicesList();
 
   // Search box binding
-  $('#search-services').on('input', function() {
+  $('#search-services').on('input', function () {
     loadServicesList($(this).val());
   });
 
   // Modal open
-  $('#btn-add-service').click(function() {
+  $('#btn-add-service').click(function () {
     editId = null;
     keepExistingImages = [];
     $('#service-modal-title').text('Add Service');
@@ -1427,20 +1484,20 @@ function initAdminServices() {
   });
 
   // Modal close
-  $('.modal-close, #btn-cancel-service').click(function() {
+  $('.modal-close, #btn-cancel-service').click(function () {
     $('#service-modal').removeClass('open');
   });
 
   // Live Preview click binding
-  $('#btn-preview-service').click(function(e) {
+  $('#btn-preview-service').click(function (e) {
     e.preventDefault();
     const title = $('#service-title').val();
     const category = 'Service Details';
     const content = quill ? quill.root.innerHTML : '';
-    
+
     const imageUrls = [];
     // Read existing
-    $('#image-preview-box .existing-preview-item img').each(function() {
+    $('#image-preview-box .existing-preview-item img').each(function () {
       imageUrls.push($(this).attr('src'));
     });
     // Read new selections
@@ -1450,14 +1507,14 @@ function initAdminServices() {
         imageUrls.push(URL.createObjectURL(fileInput.files[i]));
       }
     }
-    
+
     window.openLivePreview(title, category, content, imageUrls);
   });
 
   // Image Upload Preview binding
-  $('#service-image').change(function() {
+  $('#service-image').change(function () {
     $('#image-preview-box .new-preview').remove();
-    
+
     const files = this.files;
     if (files && files.length > 0) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
@@ -1476,10 +1533,10 @@ function initAdminServices() {
       }
 
       $('#image-preview-box .placeholder').remove();
-      
+
       for (let i = 0; i < files.length; i++) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
           $('#image-preview-box').append(`
             <div class="new-preview" style="position:relative; width:80px; height:80px; border-radius:6px; overflow:hidden; border:1px solid #ddd; background:#fff; display:inline-block;">
               <img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">
@@ -1493,7 +1550,7 @@ function initAdminServices() {
   });
 
   // Remove existing image handler
-  $(document).on('click', '.btn-remove-existing-img', function(e) {
+  $(document).on('click', '.btn-remove-existing-img', function (e) {
     e.preventDefault();
     const publicId = $(this).data('id');
     keepExistingImages = keepExistingImages.filter(id => id !== publicId);
@@ -1504,17 +1561,17 @@ function initAdminServices() {
   });
 
   // Submit form handler
-  $('#service-form').submit(function(e) {
+  $('#service-form').submit(function (e) {
     e.preventDefault();
     if (quill) {
       $('#service-description').val(quill.root.innerHTML);
     }
     const formData = new FormData(this);
-    
+
     if (editId) {
       formData.append('keepExistingImages', JSON.stringify(keepExistingImages));
     }
-    
+
     const url = editId ? `/api/services/${editId}` : '/api/services';
     const method = editId ? 'PUT' : 'POST';
 
@@ -1527,25 +1584,25 @@ function initAdminServices() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editId ? 'Service updated successfully!' : 'Service created successfully!');
           $('#service-modal').removeClass('open');
           loadServicesList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Error occurred', 'error');
       }
     });
   });
 
   // Edit / Delete action delegation
-  $(document).on('click', '.edit-service-btn', function() {
+  $(document).on('click', '.edit-service-btn', function () {
     const id = $(this).data('id');
     editId = id;
-    
-    $.get(`/api/services?admin=true`, function(res) {
+
+    $.get(`/api/services?admin=true`, function (res) {
       const service = res.services.find(s => s._id === id);
       if (service) {
         $('#service-modal-title').text('Edit Service');
@@ -1558,7 +1615,7 @@ function initAdminServices() {
         $('#service-metaTitle').val(service.seo?.metaTitle || '');
         $('#service-metaDescription').val(service.seo?.metaDescription || '');
         $('#service-keywords').val(service.seo?.keywords || '');
-        
+
         keepExistingImages = [];
         if (service.images && service.images.length > 0) {
           keepExistingImages = service.images.map(img => img.public_id);
@@ -1568,10 +1625,10 @@ function initAdminServices() {
 
         // Render current images
         $('#image-preview-box').empty();
-        const currentImages = service.images && service.images.length > 0 
-          ? service.images 
+        const currentImages = service.images && service.images.length > 0
+          ? service.images
           : (service.image && service.image.url ? [service.image] : []);
-        
+
         if (currentImages.length > 0) {
           currentImages.forEach(img => {
             if (!img.url) return;
@@ -1585,23 +1642,23 @@ function initAdminServices() {
         } else {
           $('#image-preview-box').html('<span class="placeholder">Gallery Previews</span>');
         }
-        
+
         $('#service-modal').addClass('open');
       }
     });
   });
 
-  $(document).on('click', '.delete-service-btn', function() {
+  $(document).on('click', '.delete-service-btn', function () {
     const id = $(this).data('id');
     if (confirm('Are you sure you want to delete this service?')) {
       $.ajax({
         url: `/api/services/${id}`,
         method: 'DELETE',
-        success: function(res) {
+        success: function (res) {
           showToast('Service deleted successfully!');
           loadServicesList();
         },
-        error: function(err) {
+        error: function (err) {
           showToast(err.responseJSON?.message || 'Delete failed', 'error');
         }
       });
@@ -1616,7 +1673,7 @@ function loadServicesList(search = '', page = 1, callback) {
     page = 1;
   }
   const term = search || $('#search-services').val() || '';
-  $.get(`/api/services?admin=true&search=${term}&page=${page}`, function(res) {
+  $.get(`/api/services?admin=true&search=${term}&page=${page}`, function (res) {
     if (res.success) {
       let rows = '';
       res.services.forEach(s => {
@@ -1640,7 +1697,7 @@ function loadServicesList(search = '', page = 1, callback) {
       $('#services-table-body').html(rows || '<tr><td colspan="5" class="text-center">No services found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
@@ -1649,7 +1706,7 @@ function loadServicesList(search = '', page = 1, callback) {
 function initAdminProjects() {
   let editId = null;
   let loadedProjectObj = null;
-  
+
   // Initialize Quill Editor for Projects Description
   const quill = window.createRichEditor('#project-description-editor', 'Describe styling themes, space sizes, layout models, construction materials...');
 
@@ -1659,12 +1716,12 @@ function initAdminProjects() {
   loadProjectLocationOptions();
 
   // Search box binding
-  $('#search-projects').on('input', function() {
+  $('#search-projects').on('input', function () {
     loadProjectsList($(this).val());
   });
 
   // Validate project images format on select
-  $('#project-images').change(function() {
+  $('#project-images').change(function () {
     const files = this.files;
     if (files && files.length > 0) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
@@ -1681,7 +1738,7 @@ function initAdminProjects() {
   });
 
   // Validate project floorplans format on select
-  $('#project-floorplans').change(function() {
+  $('#project-floorplans').change(function () {
     const files = this.files;
     if (files && files.length > 0) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp', 'pdf'];
@@ -1698,7 +1755,7 @@ function initAdminProjects() {
   });
 
   // Modal actions
-  $('#btn-add-project').click(function() {
+  $('#btn-add-project').click(function () {
     editId = null;
     loadedProjectObj = null;
     $('#project-modal-title').text('Add Project');
@@ -1709,20 +1766,20 @@ function initAdminProjects() {
     $('#project-modal').addClass('open');
   });
 
-  $('.modal-close, #btn-cancel-project').click(function() {
+  $('.modal-close, #btn-cancel-project').click(function () {
     $('#project-modal').removeClass('open');
   });
 
   // Live Preview click binding
-  $('#btn-preview-project').click(function(e) {
+  $('#btn-preview-project').click(function (e) {
     e.preventDefault();
     const title = $('#project-title').val();
     const category = $('#project-category option:selected').text();
     const content = quill ? quill.root.innerHTML : '';
-    
+
     const imageUrls = [];
     // Read existing checkbox checked ones
-    $('#project-images-preview .preview-thumb-box').each(function() {
+    $('#project-images-preview .preview-thumb-box').each(function () {
       const isChecked = $(this).find('.kept-image-check').is(':checked');
       if (isChecked) {
         imageUrls.push($(this).find('img').attr('src'));
@@ -1735,34 +1792,34 @@ function initAdminProjects() {
         imageUrls.push(URL.createObjectURL(fileInput.files[i]));
       }
     }
-    
+
     window.openLivePreview(title, category, content, imageUrls);
   });
 
   // Submit Handler
-  $('#project-form').submit(function(e) {
+  $('#project-form').submit(function (e) {
     e.preventDefault();
     if (quill) {
       $('#project-description').val(quill.root.innerHTML);
     }
     const formData = new FormData(this);
-    
+
     // Manage kept images/floorplans if editing
     if (editId && loadedProjectObj) {
       const keptImages = [];
       const keptFps = [];
-      
-      $('.kept-image-check').each(function() {
+
+      $('.kept-image-check').each(function () {
         if ($(this).is(':checked')) {
           keptImages.push($(this).val());
         }
       });
-      $('.kept-fp-check').each(function() {
+      $('.kept-fp-check').each(function () {
         if ($(this).is(':checked')) {
           keptFps.push($(this).val());
         }
       });
-      
+
       formData.append('keepExistingImages', JSON.stringify(keptImages));
       formData.append('keepExistingFloorPlans', JSON.stringify(keptFps));
     }
@@ -1776,25 +1833,25 @@ function initAdminProjects() {
       data: formData,
       processData: false,
       contentType: false,
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editId ? 'Project updated successfully!' : 'Project created successfully!');
           $('#project-modal').removeClass('open');
           loadProjectsList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Error occurred', 'error');
       }
     });
   });
 
   // Edit / Delete Project actions
-  $(document).on('click', '.edit-project-btn', function() {
+  $(document).on('click', '.edit-project-btn', function () {
     const id = $(this).data('id');
     editId = id;
 
-    $.get(`/api/projects?admin=true`, function(res) {
+    $.get(`/api/projects?admin=true`, function (res) {
       const project = res.projects.find(p => p._id === id);
       if (project) {
         loadedProjectObj = project;
@@ -1817,7 +1874,7 @@ function initAdminProjects() {
         $('#project-metaTitle').val(project.seo?.metaTitle || '');
         $('#project-metaDescription').val(project.seo?.metaDescription || '');
         $('#project-keywords').val(project.seo?.keywords || '');
-        
+
         // Render current images with checkboxes to discard/keep
         let imgsHtml = '';
         project.images.forEach(img => {
@@ -1845,23 +1902,23 @@ function initAdminProjects() {
           `;
         });
         $('#project-floorplans-preview').html(fpHtml);
-        
+
         $('#project-modal').addClass('open');
       }
     });
   });
 
-  $(document).on('click', '.delete-project-btn', function() {
+  $(document).on('click', '.delete-project-btn', function () {
     const id = $(this).data('id');
     if (confirm('Are you sure you want to delete this project?')) {
       $.ajax({
         url: `/api/projects/${id}`,
         method: 'DELETE',
-        success: function(res) {
+        success: function (res) {
           showToast('Project deleted successfully!');
           loadProjectsList();
         },
-        error: function(err) {
+        error: function (err) {
           showToast(err.responseJSON?.message || 'Delete failed', 'error');
         }
       });
@@ -1876,7 +1933,7 @@ function loadProjectsList(search = '', page = 1, callback) {
     page = 1;
   }
   const term = search || $('#search-projects').val() || '';
-  $.get(`/api/projects?admin=true&search=${term}&page=${page}`, function(res) {
+  $.get(`/api/projects?admin=true&search=${term}&page=${page}`, function (res) {
     if (res.success) {
       let rows = '';
       res.projects.forEach(p => {
@@ -1900,13 +1957,13 @@ function loadProjectsList(search = '', page = 1, callback) {
       $('#projects-table-body').html(rows || '<tr><td colspan="5" class="text-center">No projects found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
 
 function loadProjectCategoryOptions() {
-  $.get('/api/project-categories?status=Active', function(res) {
+  $.get('/api/project-categories?status=Active', function (res) {
     if (res.success) {
       let opts = '<option value="">Select Category</option>';
       res.categories.forEach(c => {
@@ -1918,7 +1975,7 @@ function loadProjectCategoryOptions() {
 }
 
 function loadProjectLocationOptions() {
-  $.get('/api/cities?status=Active', function(res) {
+  $.get('/api/cities?status=Active', function (res) {
     if (res.success) {
       let opts = '<option value="">Select Location</option>';
       res.cities.forEach(city => {
@@ -1934,7 +1991,7 @@ function loadProjectLocationOptions() {
 function initAdminBlogs() {
   let editId = null;
   let keepExistingImages = [];
-  
+
   // Initialize Quill Editor
   const quill = window.createRichEditor('#blog-content-editor', 'Write visual rich content details here...');
 
@@ -1942,11 +1999,11 @@ function initAdminBlogs() {
   loadBlogsList();
   loadBlogCategoryOptions();
 
-  $('#search-blogs').on('input', function() {
+  $('#search-blogs').on('input', function () {
     loadBlogsList($(this).val());
   });
 
-  $('#btn-add-blog').click(function() {
+  $('#btn-add-blog').click(function () {
     editId = null;
     keepExistingImages = [];
     $('#blog-modal-title').text('Create Blog Post');
@@ -1956,20 +2013,20 @@ function initAdminBlogs() {
     $('#blog-modal').addClass('open');
   });
 
-  $('.modal-close, #btn-cancel-blog').click(function() {
+  $('.modal-close, #btn-cancel-blog').click(function () {
     $('#blog-modal').removeClass('open');
   });
 
   // Live Preview click binding
-  $('#btn-preview-blog').click(function(e) {
+  $('#btn-preview-blog').click(function (e) {
     e.preventDefault();
     const title = $('#blog-title').val();
     const category = $('#blog-category option:selected').text();
     const content = quill ? quill.root.innerHTML : '';
-    
+
     const imageUrls = [];
     // Read existing
-    $('#blog-image-preview .existing-preview-item img').each(function() {
+    $('#blog-image-preview .existing-preview-item img').each(function () {
       imageUrls.push($(this).attr('src'));
     });
     // Read new selections
@@ -1979,14 +2036,14 @@ function initAdminBlogs() {
         imageUrls.push(URL.createObjectURL(fileInput.files[i]));
       }
     }
-    
+
     window.openLivePreview(title, category, content, imageUrls);
   });
 
   // Image Upload Preview binding (with max 3 validation)
-  $('#blog-featuredImage').change(function() {
+  $('#blog-featuredImage').change(function () {
     $('#blog-image-preview .new-preview').remove();
-    
+
     const files = this.files;
     if (files && files.length > 0) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
@@ -2016,10 +2073,10 @@ function initAdminBlogs() {
       }
 
       $('#blog-image-preview .placeholder').remove();
-      
+
       for (let i = 0; i < files.length; i++) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
           $('#blog-image-preview').append(`
             <div class="new-preview" style="position:relative; width:80px; height:80px; border-radius:6px; overflow:hidden; border:1px solid #ddd; background:#fff; display:inline-block; margin-right:5px; margin-bottom:5px;">
               <img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">
@@ -2033,7 +2090,7 @@ function initAdminBlogs() {
   });
 
   // Remove existing blog image handler
-  $(document).on('click', '.btn-remove-existing-blog-img', function(e) {
+  $(document).on('click', '.btn-remove-existing-blog-img', function (e) {
     e.preventDefault();
     const publicId = $(this).data('id');
     keepExistingImages = keepExistingImages.filter(id => id !== publicId);
@@ -2045,17 +2102,17 @@ function initAdminBlogs() {
 
 
 
-  $('#blog-form').submit(function(e) {
+  $('#blog-form').submit(function (e) {
     e.preventDefault();
     if (quill) {
       $('#blog-content').val(quill.root.innerHTML);
     }
     const formData = new FormData(this);
-    
+
     if (editId) {
       formData.append('keepExistingImages', JSON.stringify(keepExistingImages));
     }
-    
+
     const url = editId ? `/api/blogs/${editId}` : '/api/blogs';
     const method = editId ? 'PUT' : 'POST';
 
@@ -2068,24 +2125,24 @@ function initAdminBlogs() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editId ? 'Blog post updated successfully!' : 'Blog post published!');
           $('#blog-modal').removeClass('open');
           loadBlogsList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Publishing error', 'error');
       }
     });
   });
 
-  $(document).on('click', '.edit-blog-btn', function() {
+  $(document).on('click', '.edit-blog-btn', function () {
     const id = $(this).data('id');
     editId = id;
 
-    $.get(`/api/blogs?admin=true`, function(res) {
+    $.get(`/api/blogs?admin=true`, function (res) {
       const blog = res.blogs.find(b => b._id === id);
       if (blog) {
         $('#blog-modal-title').text('Edit Blog Post');
@@ -2097,7 +2154,7 @@ function initAdminBlogs() {
         $('#blog-category').val(blog.category?._id || '');
         $('#blog-status').val(blog.status);
 
-        
+
         keepExistingImages = [];
         if (blog.images && blog.images.length > 0) {
           keepExistingImages = blog.images.map(img => img.public_id);
@@ -2107,10 +2164,10 @@ function initAdminBlogs() {
 
         // Render current images
         $('#blog-image-preview').empty();
-        const currentImages = blog.images && blog.images.length > 0 
-          ? blog.images 
+        const currentImages = blog.images && blog.images.length > 0
+          ? blog.images
           : (blog.featuredImage && blog.featuredImage.url ? [blog.featuredImage] : []);
-        
+
         if (currentImages.length > 0) {
           currentImages.forEach(img => {
             if (!img.url) return;
@@ -2124,23 +2181,23 @@ function initAdminBlogs() {
         } else {
           $('#blog-image-preview').html('<span class="placeholder">Gallery Previews</span>');
         }
-        
+
         $('#blog-modal').addClass('open');
       }
     });
   });
 
-  $(document).on('click', '.delete-blog-btn', function() {
+  $(document).on('click', '.delete-blog-btn', function () {
     const id = $(this).data('id');
     if (confirm('Are you sure you want to delete this blog post?')) {
       $.ajax({
         url: `/api/blogs/${id}`,
         method: 'DELETE',
-        success: function(res) {
+        success: function (res) {
           showToast('Blog deleted successfully!');
           loadBlogsList();
         },
-        error: function(err) {
+        error: function (err) {
           showToast(err.responseJSON?.message || 'Delete failed', 'error');
         }
       });
@@ -2155,7 +2212,7 @@ function loadBlogsList(search = '', page = 1, callback) {
     page = 1;
   }
   const term = search || $('#search-blogs').val() || '';
-  $.get(`/api/blogs?admin=true&search=${term}&page=${page}`, function(res) {
+  $.get(`/api/blogs?admin=true&search=${term}&page=${page}`, function (res) {
     if (res.success) {
       let rows = '';
       res.blogs.forEach(b => {
@@ -2179,13 +2236,13 @@ function loadBlogsList(search = '', page = 1, callback) {
       $('#blogs-table-body').html(rows || '<tr><td colspan="5" class="text-center">No blog posts found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
 
 function loadBlogCategoryOptions() {
-  $.get('/api/blog-categories?status=Active', function(res) {
+  $.get('/api/blog-categories?status=Active', function (res) {
     if (res.success) {
       let opts = '<option value="">Select Category</option>';
       res.categories.forEach(c => {
@@ -2202,19 +2259,19 @@ function initAdminTestimonials() {
   window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-testimonials', loadTestimonialsList);
   loadTestimonialsList();
 
-  $('#btn-add-testimonial').click(function() {
+  $('#btn-add-testimonial').click(function () {
     editId = null;
     $('#testimonial-modal-title').text('Add Testimonial');
     $('#testimonial-form')[0].reset();
     $('#testimonial-modal').addClass('open');
   });
 
-  $('.modal-close, #btn-cancel-testimonial').click(function() {
+  $('.modal-close, #btn-cancel-testimonial').click(function () {
     $('#testimonial-modal').removeClass('open');
   });
 
   // Validate testimonial image format
-  $('#testimonial-image').change(function() {
+  $('#testimonial-image').change(function () {
     const file = this.files[0];
     if (file) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
@@ -2226,7 +2283,7 @@ function initAdminTestimonials() {
     }
   });
 
-  $('#testimonial-form').submit(function(e) {
+  $('#testimonial-form').submit(function (e) {
     e.preventDefault();
     const formData = new FormData(this);
     const url = editId ? `/api/testimonials/${editId}` : '/api/testimonials';
@@ -2238,23 +2295,23 @@ function initAdminTestimonials() {
       data: formData,
       processData: false,
       contentType: false,
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editId ? 'Testimonial updated!' : 'Testimonial added!');
           $('#testimonial-modal').removeClass('open');
           loadTestimonialsList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Error occurred', 'error');
       }
     });
   });
 
-  $(document).on('click', '.edit-testimonial-btn', function() {
+  $(document).on('click', '.edit-testimonial-btn', function () {
     const id = $(this).data('id');
     editId = id;
-    $.get('/api/testimonials?admin=true', function(res) {
+    $.get('/api/testimonials?admin=true', function (res) {
       const test = res.testimonials.find(t => t._id === id);
       if (test) {
         $('#testimonial-modal-title').text('Edit Testimonial');
@@ -2268,13 +2325,13 @@ function initAdminTestimonials() {
     });
   });
 
-  $(document).on('click', '.delete-testimonial-btn', function() {
+  $(document).on('click', '.delete-testimonial-btn', function () {
     const id = $(this).data('id');
     if (confirm('Delete this testimonial?')) {
       $.ajax({
         url: `/api/testimonials/${id}`,
         method: 'DELETE',
-        success: function() {
+        success: function () {
           showToast('Testimonial deleted successfully');
           loadTestimonialsList();
         }
@@ -2284,7 +2341,7 @@ function initAdminTestimonials() {
 }
 
 function loadTestimonialsList(callback) {
-  $.get('/api/testimonials?admin=true', function(res) {
+  $.get('/api/testimonials?admin=true', function (res) {
     if (res.success) {
       let rows = '';
       res.testimonials.forEach(t => {
@@ -2306,7 +2363,7 @@ function loadTestimonialsList(callback) {
       $('#testimonials-table-body').html(rows || '<tr><td colspan="5" class="text-center">No testimonials found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
@@ -2317,19 +2374,19 @@ function initAdminTeam() {
   window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-team', loadTeamList);
   loadTeamList();
 
-  $('#btn-add-team').click(function() {
+  $('#btn-add-team').click(function () {
     editId = null;
     $('#team-modal-title').text('Add Team Member');
     $('#team-form')[0].reset();
     $('#team-modal').addClass('open');
   });
 
-  $('.modal-close, #btn-cancel-team').click(function() {
+  $('.modal-close, #btn-cancel-team').click(function () {
     $('#team-modal').removeClass('open');
   });
 
   // Validate team member image format
-  $('#team-image').change(function() {
+  $('#team-image').change(function () {
     const file = this.files[0];
     if (file) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
@@ -2341,7 +2398,7 @@ function initAdminTeam() {
     }
   });
 
-  $('#team-form').submit(function(e) {
+  $('#team-form').submit(function (e) {
     e.preventDefault();
     const formData = new FormData(this);
     const url = editId ? `/api/team/${editId}` : '/api/team';
@@ -2353,23 +2410,23 @@ function initAdminTeam() {
       data: formData,
       processData: false,
       contentType: false,
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editId ? 'Team member updated!' : 'Team member added!');
           $('#team-modal').removeClass('open');
           loadTeamList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Error occurred', 'error');
       }
     });
   });
 
-  $(document).on('click', '.edit-team-btn', function() {
+  $(document).on('click', '.edit-team-btn', function () {
     const id = $(this).data('id');
     editId = id;
-    $.get('/api/team?admin=true', function(res) {
+    $.get('/api/team?admin=true', function (res) {
       const member = res.teamMembers.find(m => m._id === id);
       if (member) {
         $('#team-modal-title').text('Edit Team Member');
@@ -2384,13 +2441,13 @@ function initAdminTeam() {
     });
   });
 
-  $(document).on('click', '.delete-team-btn', function() {
+  $(document).on('click', '.delete-team-btn', function () {
     const id = $(this).data('id');
     if (confirm('Delete this team member?')) {
       $.ajax({
         url: `/api/team/${id}`,
         method: 'DELETE',
-        success: function() {
+        success: function () {
           showToast('Team member deleted successfully');
           loadTeamList();
         }
@@ -2400,7 +2457,7 @@ function initAdminTeam() {
 }
 
 function loadTeamList(callback) {
-  $.get('/api/team?admin=true', function(res) {
+  $.get('/api/team?admin=true', function (res) {
     if (res.success) {
       let rows = '';
       res.teamMembers.forEach(m => {
@@ -2423,7 +2480,7 @@ function loadTeamList(callback) {
       $('#team-table-body').html(rows || '<tr><td colspan="5" class="text-center">No team members found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
@@ -2435,10 +2492,10 @@ function initAdminConsultations() {
   window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-consultations', loadConsultationsList);
   loadConsultationsList();
 
-  $(document).on('change', '.consult-status-select', function() {
+  $(document).on('change', '.consult-status-select', function () {
     const id = $(this).data('id');
     const newStatus = $(this).val();
-    
+
     $.ajax({
       url: `/api/consultations/${id}`,
       method: 'PUT',
@@ -2446,14 +2503,14 @@ function initAdminConsultations() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         showToast('Consultation status updated.');
         loadConsultationsList();
       }
     });
   });
 
-  $(document).on('click', '.delete-consult-btn', function() {
+  $(document).on('click', '.delete-consult-btn', function () {
     const id = $(this).data('id');
     if (confirm('Delete this request permanently?')) {
       $.ajax({
@@ -2462,7 +2519,7 @@ function initAdminConsultations() {
         headers: {
           'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
         },
-        success: function() {
+        success: function () {
           showToast('Request deleted.');
           loadConsultationsList();
         }
@@ -2472,7 +2529,7 @@ function initAdminConsultations() {
 }
 
 function loadConsultationsList(callback) {
-  $.get('/api/consultations', function(res) {
+  $.get('/api/consultations', function (res) {
     if (res.success) {
       loadedConsultations = res.consultations;
       let rows = '';
@@ -2511,7 +2568,7 @@ function loadConsultationsList(callback) {
       $('#consultations-table-body').html(rows || '<tr><td colspan="5" class="text-center">No consultation requests found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
@@ -2523,19 +2580,19 @@ function initAdminContacts() {
   window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-contacts', loadContactsList);
   loadContactsList();
 
-  $(document).on('change', '.contact-status-select', function() {
+  $(document).on('change', '.contact-status-select', function () {
     const id = $(this).data('id');
     const newStatus = $(this).val();
-    
+
     $.ajax({
       url: `/api/contacts/${id}`,
       method: 'PUT',
       data: { status: newStatus },
-      success: function() {
+      success: function () {
         showToast('Inquiry status updated.');
         loadContactsList();
       },
-      error: function(xhr) {
+      error: function (xhr) {
         const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to update status.';
         alert(errorMsg);
         loadContactsList();
@@ -2543,13 +2600,13 @@ function initAdminContacts() {
     });
   });
 
-  $(document).on('click', '.delete-contact-btn', function() {
+  $(document).on('click', '.delete-contact-btn', function () {
     const id = $(this).data('id');
     if (confirm('Delete inquiry?')) {
       $.ajax({
         url: `/api/contacts/${id}`,
         method: 'DELETE',
-        success: function() {
+        success: function () {
           showToast('Inquiry deleted.');
           loadContactsList();
         }
@@ -2558,7 +2615,7 @@ function initAdminContacts() {
   });
 
   // Open Details Modal
-  $(document).on('click', '.view-contact-btn', function() {
+  $(document).on('click', '.view-contact-btn', function () {
     const id = $(this).attr('data-id');
     currentContactId = id;
     const contact = loadedContacts.find(item => item._id === id);
@@ -2574,13 +2631,13 @@ function initAdminContacts() {
   });
 
   // Close Details Modal
-  $(document).on('click', '#close-contact-modal-btn, #close-contact-modal-btn2', function() {
+  $(document).on('click', '#close-contact-modal-btn, #close-contact-modal-btn2', function () {
     $('#contact-details-modal').removeClass('open').hide();
     currentContactId = null;
   });
 
   // Save Admin Follow-up Notes
-  $(document).on('click', '#save-contact-notes-btn', function() {
+  $(document).on('click', '#save-contact-notes-btn', function () {
     if (!currentContactId) return;
     const notes = $('#modal-c-notes').val();
     const saveBtn = $(this);
@@ -2590,17 +2647,17 @@ function initAdminContacts() {
       url: `/api/contacts/${currentContactId}`,
       method: 'PUT',
       data: { adminNotes: notes },
-      success: function() {
+      success: function () {
         showToast('Admin notes saved successfully.');
         $('#contact-details-modal').removeClass('open').hide();
         currentContactId = null;
         loadContactsList();
       },
-      error: function(xhr) {
+      error: function (xhr) {
         const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Failed to save notes.';
         alert(errorMsg);
       },
-      complete: function() {
+      complete: function () {
         saveBtn.prop('disabled', false).text('Save Notes');
       }
     });
@@ -2608,7 +2665,7 @@ function initAdminContacts() {
 }
 
 function loadContactsList(callback) {
-  $.get('/api/contacts', function(res) {
+  $.get('/api/contacts', function (res) {
     if (res.success) {
       loadedContacts = res.contacts;
       let rows = '';
@@ -2643,7 +2700,7 @@ function loadContactsList(callback) {
       $('#contacts-table-body').html(rows || '<tr><td colspan="5" class="text-center">No contact inquiries found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
@@ -2654,10 +2711,10 @@ function initAdminSettings() {
   let isEmailVerified = false;
 
   // Fetch current configs
-  $.get('/api/settings', function(res) {
+  $.get('/api/settings', function (res) {
     if (res.success && res.settings) {
       const settings = res.settings;
-      
+
       $('#siteName').val(settings.siteName);
       $('#contactEmail').val(settings.contactEmail);
       savedEmail = settings.contactEmail || '';
@@ -2668,14 +2725,14 @@ function initAdminSettings() {
       $('#whatsappNumber').val(settings.whatsappNumber);
       $('#address').val(settings.address);
       $('#googleMapUrl').val(settings.googleMapUrl);
-      
+
       if (settings.socialLinks) {
         $('#fbLink').val(settings.socialLinks.facebook || '');
         $('#instaLink').val(settings.socialLinks.instagram || '');
         $('#linkedinLink').val(settings.socialLinks.linkedin || '');
         $('#ytLink').val(settings.socialLinks.youtube || '');
       }
-      
+
       if (settings.seo) {
         $('#defaultMetaTitle').val(settings.seo.defaultMetaTitle || '');
         $('#defaultMetaDescription').val(settings.seo.defaultMetaDescription || '');
@@ -2689,7 +2746,7 @@ function initAdminSettings() {
   });
 
   // Track email input changes
-  $('#contactEmail').on('input', function() {
+  $('#contactEmail').on('input', function () {
     const currentInputVal = $(this).val().trim();
     updateEmailVerificationStatus(currentInputVal);
   });
@@ -2697,7 +2754,7 @@ function initAdminSettings() {
   function updateEmailVerificationStatus(currentVal) {
     const badge = $('#email-verification-badge');
     const triggerBtn = $('#btn-trigger-email-otp');
-    
+
     if (currentVal === savedEmail && isEmailVerified) {
       badge.text('Verified').css({ 'background': '#DEF7EC', 'color': '#03543F' });
       triggerBtn.hide();
@@ -2709,7 +2766,7 @@ function initAdminSettings() {
   }
 
   // Trigger Send OTP click
-  $('#btn-trigger-email-otp').click(function(e) {
+  $('#btn-trigger-email-otp').click(function (e) {
     e.preventDefault();
     const newEmail = $('#contactEmail').val().trim();
     if (!newEmail || !newEmail.includes('@')) {
@@ -2728,7 +2785,7 @@ function initAdminSettings() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         btn.prop('disabled', false).text('Verify via OTP');
         if (res.success) {
           showToast('Verification OTP sent successfully!');
@@ -2736,7 +2793,7 @@ function initAdminSettings() {
           $('#email-verification-otp-code').val('').focus();
         }
       },
-      error: function(err) {
+      error: function (err) {
         btn.prop('disabled', false).text('Verify via OTP');
         alert(err.responseJSON?.message || 'Failed to send OTP. Please check your SMTP settings.');
       }
@@ -2744,7 +2801,7 @@ function initAdminSettings() {
   });
 
   // Confirm OTP code
-  $('#btn-submit-email-otp').click(function(e) {
+  $('#btn-submit-email-otp').click(function (e) {
     e.preventDefault();
     const newEmail = $('#contactEmail').val().trim();
     const otpCode = $('#email-verification-otp-code').val().trim();
@@ -2765,7 +2822,7 @@ function initAdminSettings() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         btn.prop('disabled', false).text('Confirm');
         if (res.success) {
           showToast('Email verified and updated successfully!');
@@ -2776,7 +2833,7 @@ function initAdminSettings() {
           $('#btn-trigger-email-otp').hide();
         }
       },
-      error: function(err) {
+      error: function (err) {
         btn.prop('disabled', false).text('Confirm');
         alert(err.responseJSON?.message || 'Verification failed. Incorrect or expired OTP.');
       }
@@ -2784,13 +2841,13 @@ function initAdminSettings() {
   });
 
   // Cancel OTP verification
-  $('#btn-cancel-email-otp').click(function(e) {
+  $('#btn-cancel-email-otp').click(function (e) {
     e.preventDefault();
     $('#email-otp-verification-section').hide();
   });
 
   // Validate site logo format
-  $('#logo').change(function() {
+  $('#logo').change(function () {
     const file = this.files[0];
     if (file) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
@@ -2803,7 +2860,7 @@ function initAdminSettings() {
   });
 
   // Submit edits
-  $('#settings-form').submit(function(e) {
+  $('#settings-form').submit(function (e) {
     e.preventDefault();
 
     // Check if email is verified
@@ -2831,7 +2888,7 @@ function initAdminSettings() {
       data: formData,
       processData: false,
       contentType: false,
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast('Website configurations updated successfully!');
           if (res.settings.logo && res.settings.logo.url) {
@@ -2839,7 +2896,7 @@ function initAdminSettings() {
           }
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Save failed', 'error');
       }
     });
@@ -2859,7 +2916,7 @@ function initAdminCategories() {
   loadBlogCatsList();
 
   // Tabs Navigation click binding
-  $('.tab-btn').click(function(e) {
+  $('.tab-btn').click(function (e) {
     e.preventDefault();
     $('.tab-btn').removeClass('active');
     $(this).addClass('active');
@@ -2870,18 +2927,18 @@ function initAdminCategories() {
   });
 
   // --- Project Categories Actions ---
-  $('#btn-add-project-cat').click(function() {
+  $('#btn-add-project-cat').click(function () {
     editProjectCatId = null;
     $('#project-cat-modal-title').text('Add Project Category');
     $('#project-cat-form')[0].reset();
     $('#project-cat-modal').addClass('open');
   });
 
-  $('#btn-cancel-project-cat, #project-cat-modal .modal-close').click(function() {
+  $('#btn-cancel-project-cat, #project-cat-modal .modal-close').click(function () {
     $('#project-cat-modal').removeClass('open');
   });
 
-  $('#project-cat-form').submit(function(e) {
+  $('#project-cat-form').submit(function (e) {
     e.preventDefault();
     const data = {
       name: $('#project-cat-name').val(),
@@ -2894,23 +2951,23 @@ function initAdminCategories() {
       url: url,
       method: method,
       data: data,
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editProjectCatId ? 'Project category updated!' : 'Project category created!');
           $('#project-cat-modal').removeClass('open');
           loadProjectCatsList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Error occurred', 'error');
       }
     });
   });
 
-  $(document).on('click', '.edit-project-cat-btn', function() {
+  $(document).on('click', '.edit-project-cat-btn', function () {
     const id = $(this).data('id');
     editProjectCatId = id;
-    $.get('/api/project-categories?admin=true', function(res) {
+    $.get('/api/project-categories?admin=true', function (res) {
       const cat = res.categories.find(c => c._id === id);
       if (cat) {
         $('#project-cat-modal-title').text('Edit Project Category');
@@ -2921,17 +2978,17 @@ function initAdminCategories() {
     });
   });
 
-  $(document).on('click', '.delete-project-cat-btn', function() {
+  $(document).on('click', '.delete-project-cat-btn', function () {
     const id = $(this).data('id');
     if (confirm('Are you sure you want to delete this project category?')) {
       $.ajax({
         url: `/api/project-categories/${id}`,
         method: 'DELETE',
-        success: function() {
+        success: function () {
           showToast('Project category deleted successfully!');
           loadProjectCatsList();
         },
-        error: function(err) {
+        error: function (err) {
           showToast(err.responseJSON?.message || 'Delete failed', 'error');
         }
       });
@@ -2939,18 +2996,18 @@ function initAdminCategories() {
   });
 
   // --- Blog Categories Actions ---
-  $('#btn-add-blog-cat').click(function() {
+  $('#btn-add-blog-cat').click(function () {
     editBlogCatId = null;
     $('#blog-cat-modal-title').text('Add Blog Category');
     $('#blog-cat-form')[0].reset();
     $('#blog-cat-modal').addClass('open');
   });
 
-  $('#btn-cancel-blog-cat, #blog-cat-modal .modal-close').click(function() {
+  $('#btn-cancel-blog-cat, #blog-cat-modal .modal-close').click(function () {
     $('#blog-cat-modal').removeClass('open');
   });
 
-  $('#blog-cat-form').submit(function(e) {
+  $('#blog-cat-form').submit(function (e) {
     e.preventDefault();
     const data = {
       name: $('#blog-cat-name').val(),
@@ -2963,23 +3020,23 @@ function initAdminCategories() {
       url: url,
       method: method,
       data: data,
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editBlogCatId ? 'Blog category updated!' : 'Blog category created!');
           $('#blog-cat-modal').removeClass('open');
           loadBlogCatsList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Error occurred', 'error');
       }
     });
   });
 
-  $(document).on('click', '.edit-blog-cat-btn', function() {
+  $(document).on('click', '.edit-blog-cat-btn', function () {
     const id = $(this).data('id');
     editBlogCatId = id;
-    $.get('/api/blog-categories?admin=true', function(res) {
+    $.get('/api/blog-categories?admin=true', function (res) {
       const cat = res.categories.find(c => c._id === id);
       if (cat) {
         $('#blog-cat-modal-title').text('Edit Blog Category');
@@ -2990,17 +3047,17 @@ function initAdminCategories() {
     });
   });
 
-  $(document).on('click', '.delete-blog-cat-btn', function() {
+  $(document).on('click', '.delete-blog-cat-btn', function () {
     const id = $(this).data('id');
     if (confirm('Are you sure you want to delete this blog category?')) {
       $.ajax({
         url: `/api/blog-categories/${id}`,
         method: 'DELETE',
-        success: function() {
+        success: function () {
           showToast('Blog category deleted successfully!');
           loadBlogCatsList();
         },
-        error: function(err) {
+        error: function (err) {
           showToast(err.responseJSON?.message || 'Delete failed', 'error');
         }
       });
@@ -3011,18 +3068,18 @@ function initAdminCategories() {
   let editCityId = null;
   loadCitiesList();
 
-  $('#btn-add-city').click(function() {
+  $('#btn-add-city').click(function () {
     editCityId = null;
     $('#city-modal-title').text('Add Serving City');
     $('#city-form')[0].reset();
     $('#city-modal').addClass('open');
   });
 
-  $('#btn-cancel-city, #city-modal .modal-close').click(function() {
+  $('#btn-cancel-city, #city-modal .modal-close').click(function () {
     $('#city-modal').removeClass('open');
   });
 
-  $('#city-form').submit(function(e) {
+  $('#city-form').submit(function (e) {
     e.preventDefault();
     const data = {
       name: $('#city-name').val().trim(),
@@ -3038,23 +3095,23 @@ function initAdminCategories() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editCityId ? 'Serving city updated!' : 'Serving city created!');
           $('#city-modal').removeClass('open');
           loadCitiesList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Error occurred', 'error');
       }
     });
   });
 
-  $(document).on('click', '.edit-city-btn', function() {
+  $(document).on('click', '.edit-city-btn', function () {
     const id = $(this).data('id');
     editCityId = id;
-    $.get('/api/cities', function(res) {
+    $.get('/api/cities', function (res) {
       if (res.success) {
         const city = res.cities.find(c => c._id === id);
         if (city) {
@@ -3067,7 +3124,7 @@ function initAdminCategories() {
     });
   });
 
-  $(document).on('click', '.delete-city-btn', function() {
+  $(document).on('click', '.delete-city-btn', function () {
     const id = $(this).data('id');
     if (confirm('Are you sure you want to delete this serving city?')) {
       $.ajax({
@@ -3076,13 +3133,13 @@ function initAdminCategories() {
         headers: {
           'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
         },
-        success: function(res) {
+        success: function (res) {
           if (res.success) {
             showToast('Serving city deleted successfully!');
             loadCitiesList();
           }
         },
-        error: function(err) {
+        error: function (err) {
           showToast(err.responseJSON?.message || 'Error deleting city', 'error');
         }
       });
@@ -3090,7 +3147,7 @@ function initAdminCategories() {
   });
 
   function loadCitiesList(callback) {
-    $.get('/api/cities', function(res) {
+    $.get('/api/cities', function (res) {
       if (res.success) {
         let rows = '';
         res.cities.forEach(city => {
@@ -3110,14 +3167,14 @@ function initAdminCategories() {
         $('#cities-table-body').html(rows || '<tr><td colspan="3" class="text-center">No serving cities found.</td></tr>');
       }
       if (typeof callback === 'function') callback();
-    }).fail(function() {
+    }).fail(function () {
       if (typeof callback === 'function') callback();
     });
   }
 }
 
 function loadProjectCatsList(callback) {
-  $.get('/api/project-categories?admin=true', function(res) {
+  $.get('/api/project-categories?admin=true', function (res) {
     if (res.success) {
       let rows = '';
       res.categories.forEach(c => {
@@ -3137,13 +3194,13 @@ function loadProjectCatsList(callback) {
       $('#project-cats-table-body').html(rows || '<tr><td colspan="3" class="text-center">No categories found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
 
 function loadBlogCatsList(callback) {
-  $.get('/api/blog-categories?admin=true', function(res) {
+  $.get('/api/blog-categories?admin=true', function (res) {
     if (res.success) {
       let rows = '';
       res.categories.forEach(c => {
@@ -3163,7 +3220,7 @@ function loadBlogCatsList(callback) {
       $('#blog-cats-table-body').html(rows || '<tr><td colspan="3" class="text-center">No categories found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
@@ -3176,7 +3233,7 @@ function initAdminSubAccounts() {
 
   function applyRoleDefaultPermissions(roleVal) {
     if (roleVal === 'Viewer') {
-      $('.perm-check').each(function() {
+      $('.perm-check').each(function () {
         const val = $(this).val();
         if (val.endsWith('_view')) {
           $(this).prop('checked', true);
@@ -3185,7 +3242,7 @@ function initAdminSubAccounts() {
         }
       });
     } else if (roleVal === 'Editor') {
-      $('.perm-check').each(function() {
+      $('.perm-check').each(function () {
         const val = $(this).val();
         if (val.startsWith('report_')) {
           $(this).prop('checked', false);
@@ -3198,11 +3255,11 @@ function initAdminSubAccounts() {
     }
   }
 
-  $('#admin-role').change(function() {
+  $('#admin-role').change(function () {
     applyRoleDefaultPermissions($(this).val());
   });
 
-  $('#btn-add-admin').click(function() {
+  $('#btn-add-admin').click(function () {
     editAdminId = null;
     $('#admin-modal-title').text('Create Admin Account');
     $('#admin-form')[0].reset();
@@ -3212,16 +3269,16 @@ function initAdminSubAccounts() {
     $('#admin-modal').addClass('open');
   });
 
-  $('.modal-close, #btn-cancel-admin').click(function() {
+  $('.modal-close, #btn-cancel-admin').click(function () {
     $('#admin-modal').removeClass('open');
   });
 
-  $('#admin-form').submit(function(e) {
+  $('#admin-form').submit(function (e) {
     e.preventDefault();
-    
+
     // Build permissions list
     const permissions = [];
-    $('.perm-check:checked').each(function() {
+    $('.perm-check:checked').each(function () {
       permissions.push($(this).val());
     });
 
@@ -3243,24 +3300,24 @@ function initAdminSubAccounts() {
       method: method,
       contentType: 'application/json',
       data: JSON.stringify(data),
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast(editAdminId ? 'Sub-account updated!' : 'Sub-account created successfully!');
           $('#admin-modal').removeClass('open');
           loadAdminsList();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Action failed', 'error');
       }
     });
   });
 
-  $(document).on('click', '.edit-admin-btn', function() {
+  $(document).on('click', '.edit-admin-btn', function () {
     const id = $(this).data('id');
     editAdminId = id;
-    
-    $.get('/api/auth/admins', function(res) {
+
+    $.get('/api/auth/admins', function (res) {
       if (res.success) {
         const ad = res.admins.find(x => x._id === id);
         if (ad) {
@@ -3270,11 +3327,11 @@ function initAdminSubAccounts() {
           $('#admin-email').val(ad.email);
           $('#admin-phone').val(ad.phone);
           $('#admin-username').val(ad.username);
-          
+
           // Password is not required when editing
           $('#pwd-required-badge').hide();
           $('#admin-password').prop('required', false).val('');
-          
+
           // Clear checkboxes and check the ones assigned
           $('.perm-check').prop('checked', false);
           if (ad.permissions && Array.isArray(ad.permissions)) {
@@ -3289,19 +3346,19 @@ function initAdminSubAccounts() {
     });
   });
 
-  $(document).on('click', '.delete-admin-btn', function() {
+  $(document).on('click', '.delete-admin-btn', function () {
     const id = $(this).data('id');
     if (confirm('Are you sure you want to permanently delete this sub-admin account?')) {
       $.ajax({
         url: `/api/auth/admins/${id}`,
         method: 'DELETE',
-        success: function(res) {
+        success: function (res) {
           if (res.success) {
             showToast('Account deleted successfully');
             loadAdminsList();
           }
         },
-        error: function(err) {
+        error: function (err) {
           showToast(err.responseJSON?.message || 'Delete failed', 'error');
         }
       });
@@ -3310,12 +3367,12 @@ function initAdminSubAccounts() {
 }
 
 function loadAdminsList(callback) {
-  $.get('/api/auth/admins', function(res) {
+  $.get('/api/auth/admins', function (res) {
     if (res.success) {
       let rows = '';
       res.admins.forEach(ad => {
-        const photo = ad.profilePicture && ad.profilePicture.url 
-          ? `<img src="${ad.profilePicture.url}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">` 
+        const photo = ad.profilePicture && ad.profilePicture.url
+          ? `<img src="${ad.profilePicture.url}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">`
           : `<div style="width:40px; height:40px; border-radius:50%; background:#E5E7EB; color:#4B5563; display:flex; align-items:center; justify-content:center; font-size:1.2rem;"><i class="fas fa-user"></i></div>`;
 
         // Format permissions as badges
@@ -3332,7 +3389,7 @@ function loadAdminsList(callback) {
 
         // Action buttons (prevent deleting own logged-in account)
         const currentUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
-        const deleteButton = currentUser.id === ad._id 
+        const deleteButton = currentUser.id === ad._id
           ? `<button class="icon-btn icon-btn-delete" disabled style="opacity: 0.3; cursor: not-allowed;" title="You cannot delete yourself"><i class="fas fa-trash-alt"></i></button>`
           : `<button class="icon-btn icon-btn-delete delete-admin-btn" data-id="${ad._id}"><i class="fas fa-trash-alt"></i></button>`;
 
@@ -3355,7 +3412,7 @@ function loadAdminsList(callback) {
       $('#admins-table-body').html(rows || '<tr><td colspan="6" class="text-center">No other admin accounts found.</td></tr>');
     }
     if (typeof callback === 'function') callback();
-  }).fail(function() {
+  }).fail(function () {
     if (typeof callback === 'function') callback();
   });
 }
@@ -3365,12 +3422,12 @@ function initAdminProfile() {
   loadProfileData();
 
   // Trigger file input click
-  $('#change-photo-btn').click(function() {
+  $('#change-photo-btn').click(function () {
     $('#profilePicture').click();
   });
 
   // Handle live preview of uploaded profile image
-  $('#profilePicture').change(function() {
+  $('#profilePicture').change(function () {
     const file = this.files[0];
     if (file) {
       const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
@@ -3381,7 +3438,7 @@ function initAdminProfile() {
         return;
       }
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         $('#profile-avatar-box').html(`<img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">`);
       };
       reader.readAsDataURL(file);
@@ -3389,7 +3446,7 @@ function initAdminProfile() {
   });
 
   // Save profile edits
-  $('#profile-info-form').submit(function(e) {
+  $('#profile-info-form').submit(function (e) {
     e.preventDefault();
     const formData = new FormData(this);
 
@@ -3402,12 +3459,12 @@ function initAdminProfile() {
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
       },
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast('Profile settings updated successfully!');
           localStorage.setItem('admin_user', JSON.stringify(res.admin));
           loadProfileData();
-          
+
           // Force header updates
           $('#admin-user-display').text(res.admin.username || 'Admin');
           if (res.admin.profilePicture && res.admin.profilePicture.url) {
@@ -3417,14 +3474,14 @@ function initAdminProfile() {
           }
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Profile save failed', 'error');
       }
     });
   });
 
   // Change password submit
-  $('#profile-password-form').submit(function(e) {
+  $('#profile-password-form').submit(function (e) {
     e.preventDefault();
     const currentPassword = $('#currentPassword').val();
     const newPassword = $('#newPassword').val();
@@ -3447,13 +3504,13 @@ function initAdminProfile() {
       method: 'PUT',
       contentType: 'application/json',
       data: JSON.stringify(data),
-      success: function(res) {
+      success: function (res) {
         if (res.success) {
           showToast('Password changed successfully!');
           $('#profile-password-form')[0].reset();
         }
       },
-      error: function(err) {
+      error: function (err) {
         showToast(err.responseJSON?.message || 'Password update failed', 'error');
       }
     });
@@ -3467,7 +3524,7 @@ function loadProfileData() {
     headers: {
       'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
     },
-    success: function(res) {
+    success: function (res) {
       if (res.success && res.admin) {
         const admin = res.admin;
         $('#profile-name').val(admin.name);
@@ -3482,4 +3539,550 @@ function loadProfileData() {
       }
     }
   });
+}
+
+// --- Logs Page Controller ---
+function initAdminLogs() {
+  let currentPage = 1;
+  const limitPerPage = 50;
+
+  // Show clear button only for SuperAdmin
+  const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+  const role = adminUser.role || 'Editor';
+  if (role === 'SuperAdmin') {
+    $('#btn-clear-logs').show();
+  }
+
+  // Bind Fetch button click
+  $('#btn-fetch-logs').click(function (e) {
+    e.preventDefault();
+    fetchLogsList(1);
+  });
+
+  // Bind Clear Logs click
+  $('#btn-clear-logs').click(function (e) {
+    e.preventDefault();
+    if (confirm('WARNING: Are you sure you want to permanently clear all system logs from the database? This action cannot be undone.')) {
+      const btn = $(this);
+      btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Clearing...');
+
+      $.ajax({
+        url: '/api/logs',
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
+        success: function (res) {
+          btn.prop('disabled', false).html('<i class="fas fa-trash-alt"></i> Clear Logs');
+          if (res.success) {
+            alert(res.message || 'System logs cleared successfully.');
+            fetchLogsList(1);
+          }
+        },
+        error: function (err) {
+          btn.prop('disabled', false).html('<i class="fas fa-trash-alt"></i> Clear Logs');
+          const msg = err.responseJSON ? err.responseJSON.message : 'Failed to clear logs';
+          alert(msg);
+        }
+      });
+    }
+  });
+
+  // Bind Export Excel button click
+  $('#btn-export-logs-excel').click(function (e) {
+    e.preventDefault();
+    const btn = $(this);
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Exporting...');
+
+    const type = $('#filter-type').val() || '';
+    const startDate = $('#filter-start').val() || '';
+    const endDate = $('#filter-end').val() || '';
+
+    $.ajax({
+      url: '/api/logs',
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+      },
+      data: {
+        type,
+        startDate,
+        endDate,
+        page: 1,
+        limit: 5000 // Get all matching entries (up to 5000)
+      },
+      success: function (res) {
+        if (res.success && res.logs && res.logs.length > 0) {
+          let rowsHtml = '';
+          res.logs.forEach(function (log) {
+            const formattedDate = new Date(log.createdAt).toLocaleString();
+            const operator = log.adminUsername || (log.admin ? log.admin.username : 'System');
+            const metaStr = log.metadata && Object.keys(log.metadata).length > 0 ? JSON.stringify(log.metadata) : 'None';
+            rowsHtml += `
+              <tr>
+                <td style="border: 1px solid #e5e7eb; padding: 8px;">${formattedDate}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 8px;">${log.type}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 8px; font-weight: bold;">${operator}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 8px;">${log.action}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 8px;">${log.description}</td>
+                <td style="border: 1px solid #e5e7eb; padding: 8px; font-size: 11px;">${metaStr}</td>
+              </tr>
+            `;
+          });
+
+          const filterText = `Type: ${type || 'All'} | Dates: ${startDate || 'Any'} to ${endDate || 'Any'}`;
+          const excelTemplate = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #ffffff; }
+                .header-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
+                .title { font-size: 18px; font-weight: bold; color: #121212; }
+                .subtitle { font-size: 12px; color: #C5A880; font-weight: bold; }
+                .data-table { width: 100%; border-collapse: collapse; }
+                .th-header { background-color: #121212; color: #ffffff; font-weight: bold; padding: 10px; text-align: left; border: 1px solid #121212; }
+              </style>
+            </head>
+            <body>
+              <table class="header-table">
+                <tr>
+                  <td colspan="6" class="title" style="text-align: center; background-color: #121212; color: #ffffff; padding: 15px;">K DESIGNS INTERIORS</td>
+                </tr>
+                <tr>
+                  <td colspan="6" class="subtitle" style="text-align: center; background-color: #f9f9f9; padding: 8px; border-bottom: 2px solid #C5A880;">SYSTEM AUDIT LOGS REPORT (${filterText})</td>
+                </tr>
+                <tr>
+                  <td colspan="6" style="padding: 10px; font-size: 12px; color: #666666;">Generated on: ${new Date().toLocaleString()}</td>
+                </tr>
+              </table>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="th-header" style="background-color: #121212; color: #ffffff; border: 1px solid #121212;">Timestamp</th>
+                    <th class="th-header" style="background-color: #121212; color: #ffffff; border: 1px solid #121212;">Type</th>
+                    <th class="th-header" style="background-color: #121212; color: #ffffff; border: 1px solid #121212;">Operator</th>
+                    <th class="th-header" style="background-color: #121212; color: #ffffff; border: 1px solid #121212;">Action</th>
+                    <th class="th-header" style="background-color: #121212; color: #ffffff; border: 1px solid #121212;">Description</th>
+                    <th class="th-header" style="background-color: #121212; color: #ffffff; border: 1px solid #121212;">Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </body>
+            </html>
+          `;
+
+          downloadExcelFile(excelTemplate, 'system_logs_report.xls');
+        } else {
+          alert('No log data available to export.');
+        }
+      },
+      error: function () {
+        alert('Failed to retrieve logs for export.');
+      }
+    }).always(function () {
+      btn.prop('disabled', false).html('<i class="fas fa-file-excel"></i> Export Excel');
+    });
+  });
+
+  // Bind Export PDF button click
+  $('#btn-export-logs-pdf').click(function (e) {
+    e.preventDefault();
+    const btn = $(this);
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Exporting...');
+
+    const type = $('#filter-type').val() || '';
+    const startDate = $('#filter-start').val() || '';
+    const endDate = $('#filter-end').val() || '';
+
+    $.ajax({
+      url: '/api/logs',
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+      },
+      data: {
+        type,
+        startDate,
+        endDate,
+        page: 1,
+        limit: 5000 // Get all matching entries (up to 5000)
+      },
+      success: function (res) {
+        if (res.success && res.logs && res.logs.length > 0) {
+          let rowsHtml = '';
+          res.logs.forEach(function (log) {
+            const formattedDate = new Date(log.createdAt).toLocaleString();
+            const operator = log.adminUsername || (log.admin ? log.admin.username : 'System');
+            const metaStr = log.metadata && Object.keys(log.metadata).length > 0 ? JSON.stringify(log.metadata) : 'None';
+            rowsHtml += `
+              <tr>
+                <td>${formattedDate}</td>
+                <td><span class="log-badge" style="background-color: ${log.type === 'Error' ? 'rgba(239, 68, 68, 0.15)' : log.type === 'Login' ? 'rgba(16, 185, 129, 0.15)' : log.type === 'Logout' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${log.type === 'Error' ? '#dc2626' : log.type === 'Login' ? '#059669' : log.type === 'Logout' ? '#4f46e5' : '#d97706'}; font-weight: 700; font-size: 9px; padding: 2px 6px; border-radius: 3px; text-transform: uppercase;">${log.type}</span></td>
+                <td><strong>${operator}</strong></td>
+                <td><code>${log.action}</code></td>
+                <td>${log.description}</td>
+                <td class="meta-cell">${metaStr}</td>
+              </tr>
+            `;
+          });
+
+          const filterText = `Type: ${type || 'All'} | Dates: ${startDate || 'Any'} to ${endDate || 'Any'}`;
+          const printWindow = window.open('', '_blank');
+          printWindow.document.write(`
+            <html>
+            <head>
+              <title>K Designs - System Logs Report</title>
+              <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+                body {
+                  font-family: 'Inter', sans-serif;
+                  color: #1a1a1a;
+                  margin: 30px;
+                  line-height: 1.5;
+                  background: #fff;
+                }
+                .header {
+                  border-bottom: 2px solid #C5A880;
+                  padding-bottom: 15px;
+                  margin-bottom: 30px;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: flex-end;
+                }
+                .brand-title {
+                  font-size: 24px;
+                  font-weight: 700;
+                  color: #121212;
+                  letter-spacing: 1px;
+                }
+                .report-title {
+                  font-size: 14px;
+                  color: #C5A880;
+                  text-transform: uppercase;
+                  font-weight: 600;
+                  letter-spacing: 2px;
+                }
+                .meta-info {
+                  font-size: 12px;
+                  color: #666;
+                  margin-bottom: 20px;
+                }
+                .data-table {
+                  width: 100%;
+                  border-collapse: collapse;
+                  font-size: 11px;
+                  margin-top: 15px;
+                }
+                .data-table th {
+                  background-color: #121212;
+                  color: #fff;
+                  font-weight: 600;
+                  text-align: left;
+                  padding: 10px;
+                  border: 1px solid #121212;
+                }
+                .data-table td {
+                  padding: 10px;
+                  border: 1px solid #e5e7eb;
+                }
+                .data-table tr:nth-child(even) {
+                  background-color: #f9fafb;
+                }
+                .meta-cell {
+                  font-family: monospace;
+                  color: #4b5563;
+                  word-break: break-all;
+                  max-width: 250px;
+                }
+                @media print {
+                  body { margin: 20px; }
+                  .no-print { display: none; }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <div>
+                  <div class="brand-title">K DESIGNS INTERIORS</div>
+                  <div class="report-title">System Audit Logs Report</div>
+                </div>
+                <div style="text-align: right; font-size: 12px; color: #555;">
+                  Filter: <strong>${filterText}</strong>
+                </div>
+              </div>
+              <div class="meta-info">
+                Report generated on: <strong>${new Date().toLocaleString()}</strong>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Type</th>
+                    <th>Operator</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+              <script>
+                window.onload = function() {
+                  window.print();
+                }
+              </script>
+            </body>
+            </html>
+          `);
+          printWindow.document.close();
+        } else {
+          alert('No log data available to export.');
+        }
+      },
+      error: function () {
+        alert('Failed to retrieve logs for export.');
+      }
+    }).always(function () {
+      btn.prop('disabled', false).html('<i class="fas fa-file-pdf"></i> Export PDF');
+    });
+  });
+
+  // Close modal bindings
+  $('#close-modal-btn, #log-detail-modal').click(function (e) {
+    if (e.target === this || $(this).attr('id') === 'close-modal-btn') {
+      $('#log-detail-modal').css('display', 'none');
+    }
+  });
+
+  // Modal inspection click delegation
+  $(document).on('click', '.metadata-view-btn', function (e) {
+    e.preventDefault();
+    const meta = $(this).data('meta');
+    const container = $('#log-metadata-container');
+    container.empty();
+
+    if (!meta || Object.keys(meta).length === 0) {
+      container.html('<p style="color:var(--text-gray); text-align:center;">No metadata details available.</p>');
+      $('#log-detail-modal').css('display', 'flex');
+      return;
+    }
+
+    // 1. Check if it's an Update Action featuring updatedFields
+    if (meta.updatedFields && Object.keys(meta.updatedFields).length > 0) {
+      let tableHtml = `
+        <table class="admin-table" style="width:100%; border-collapse:collapse; margin-top:10px;">
+          <thead>
+            <tr style="background-color: #121212; color: #ffffff;">
+              <th style="padding: 12px; border: 1px solid var(--border); text-align: left; width: 30%;">Field</th>
+              <th style="padding: 12px; border: 1px solid var(--border); text-align: left;">Original Value</th>
+              <th style="padding: 12px; border: 1px solid var(--border); text-align: left;">Updated Value</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      Object.keys(meta.updatedFields).forEach(function (field) {
+        const val = meta.updatedFields[field];
+        let oldStr = '';
+        let newStr = '';
+
+        if (val && typeof val === 'object') {
+          if ('old' in val && 'new' in val) {
+            oldStr = Array.isArray(val.old) ? val.old.join(', ') : val.old;
+            newStr = Array.isArray(val.new) ? val.new.join(', ') : val.new;
+          } else if (val.updated) {
+            oldStr = '******';
+            newStr = '(Password Updated)';
+          } else {
+            oldStr = JSON.stringify(val);
+            newStr = '';
+          }
+        } else {
+          oldStr = val;
+          newStr = '';
+        }
+
+        tableHtml += `
+          <tr>
+            <td style="padding: 10px; border: 1px solid var(--border); font-weight: bold; text-transform: capitalize;">${field}</td>
+            <td style="padding: 10px; border: 1px solid var(--border); color: #dc2626; background-color: rgba(239, 68, 68, 0.03);">${oldStr || 'None'}</td>
+            <td style="padding: 10px; border: 1px solid var(--border); color: #059669; background-color: rgba(16, 185, 129, 0.03); font-weight: bold;">${newStr || 'None'}</td>
+          </tr>
+        `;
+      });
+
+      tableHtml += `
+          </tbody>
+        </table>
+      `;
+
+      // If target account info exists, render it at the top
+      let targetInfo = '';
+      if (meta.targetUsername) {
+        targetInfo = `<p style="margin-bottom: 15px; font-size: 0.95rem; background: var(--admin-bg); padding: 10px; border-left: 3px solid var(--accent); border-radius: 4px;">Target Account: <strong>${meta.targetUsername}</strong> (ID: <code>${meta.targetAdminId}</code>)</p>`;
+      }
+      container.html(targetInfo + tableHtml);
+
+    } else {
+      // 2. Default Key-Value table for general metadata
+      let tableHtml = `
+        <table class="admin-table" style="width:100%; border-collapse:collapse; margin-top:10px;">
+          <thead>
+            <tr style="background-color: #121212; color: #ffffff;">
+              <th style="padding: 12px; border: 1px solid var(--border); text-align: left; width: 35%;">Parameter</th>
+              <th style="padding: 12px; border: 1px solid var(--border); text-align: left;">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      Object.keys(meta).forEach(function (key) {
+        let val = meta[key];
+        if (key === 'sessionTimeSeconds') {
+          const minutes = Math.floor(val / 60);
+          const seconds = val % 60;
+          val = `${minutes}m ${seconds}s (${val} seconds)`;
+        } else if (typeof val === 'object') {
+          val = `<pre style="margin:0; font-family:monospace; font-size:0.8rem; background:#f9fafb; padding:8px; border-radius:4px; overflow-x:auto;">${JSON.stringify(val, null, 2)}</pre>`;
+        }
+
+        // Beautiful parameter names
+        const paramName = key
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase());
+
+        tableHtml += `
+          <tr>
+            <td style="padding: 10px; border: 1px solid var(--border); font-weight: bold; color: var(--text-dark);">${paramName}</td>
+            <td style="padding: 10px; border: 1px solid var(--border);">${val}</td>
+          </tr>
+        `;
+      });
+
+      tableHtml += `
+          </tbody>
+        </table>
+      `;
+      container.html(tableHtml);
+    }
+
+    $('#log-detail-modal').css('display', 'flex');
+  });
+
+  // Fetch function
+  function fetchLogsList(page) {
+    currentPage = page;
+    const fetchBtn = $('#btn-fetch-logs');
+    fetchBtn.prop('disabled', true).html('<i class="fas fa-sync-alt fa-spin"></i> Fetching...');
+
+    const type = $('#filter-type').val();
+    const startDate = $('#filter-start').val();
+    const endDate = $('#filter-end').val();
+
+    $.ajax({
+      url: '/api/logs',
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+      },
+      data: {
+        type,
+        startDate,
+        endDate,
+        page,
+        limit: limitPerPage
+      },
+      success: function (res) {
+        fetchBtn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Fetch Logs');
+        if (res.success) {
+          renderLogsTable(res.logs);
+          renderLogsPagination(res.pagination);
+        }
+      },
+      error: function (err) {
+        fetchBtn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i> Fetch Logs');
+        const msg = err.responseJSON ? err.responseJSON.message : 'Failed to retrieve logs';
+        alert(msg);
+      }
+    });
+  }
+
+  // Render list of logs
+  function renderLogsTable(logs) {
+    const tbody = $('#logs-table-body');
+    tbody.empty();
+
+    if (!logs || logs.length === 0) {
+      tbody.html(`
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 30px; color: var(--text-gray);">
+            No system log entries found matching criteria.
+          </td>
+        </tr>
+      `);
+      return;
+    }
+
+    logs.forEach(function (log) {
+      const typeClass = 'log-' + log.type.toLowerCase();
+      const operator = log.adminUsername || (log.admin ? log.admin.username : 'System');
+      const formattedDate = new Date(log.createdAt).toLocaleString();
+
+      const hasMeta = log.metadata && Object.keys(log.metadata).length > 0;
+      const detailsBtn = hasMeta
+        ? `<button class="metadata-view-btn" data-meta='${JSON.stringify(log.metadata).replace(/'/g, "&apos;")}'>View JSON</button>`
+        : '<span style="color:var(--text-gray); font-size:0.82rem;">None</span>';
+
+      tbody.append(`
+        <tr>
+          <td style="white-space: nowrap;">${formattedDate}</td>
+          <td><span class="log-pill ${typeClass}">${log.type}</span></td>
+          <td><strong>${operator}</strong></td>
+          <td><code>${log.action}</code></td>
+          <td>${log.description}</td>
+          <td>${detailsBtn}</td>
+        </tr>
+      `);
+    });
+  }
+
+  // Render pagination controls
+  function renderLogsPagination(pagination) {
+    const pagEl = $('#logs-pagination');
+    pagEl.empty().css('display', 'flex');
+
+    if (pagination.pages <= 1) {
+      pagEl.hide();
+      return;
+    }
+
+    // Prev Button
+    const prevDisabled = pagination.page === 1 ? 'disabled' : '';
+    pagEl.append(`<button class="page-link-btn" ${prevDisabled} data-page="${pagination.page - 1}">Prev</button>`);
+
+    // Page numbers
+    for (let i = 1; i <= pagination.pages; i++) {
+      const activeClass = i === pagination.page ? 'active' : '';
+      pagEl.append(`<button class="page-link-btn ${activeClass}" data-page="${i}">${i}</button>`);
+    }
+
+    // Next Button
+    const nextDisabled = pagination.page === pagination.pages ? 'disabled' : '';
+    pagEl.append(`<button class="page-link-btn" ${nextDisabled} data-page="${pagination.page + 1}">Next</button>`);
+
+    // Pagination clicks
+    pagEl.find('button').click(function (e) {
+      e.preventDefault();
+      const pageToFetch = $(this).data('page');
+      if (pageToFetch && pageToFetch !== pagination.page) {
+        fetchLogsList(pageToFetch);
+      }
+    });
+  }
 }

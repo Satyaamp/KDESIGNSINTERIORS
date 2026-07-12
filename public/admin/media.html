@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Explorer - K.DESIGNS & INTERIORS</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    /* Additional custom styling for Media Grid */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      padding: 20px 0;
+    }
+    .media-card {
+      background: var(--white);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .media-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+      border-color: var(--accent);
+    }
+    .media-preview-container {
+      position: relative;
+      width: 100%;
+      padding-top: 75%; /* 4:3 Aspect Ratio */
+      background: #f9fafb;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .media-preview {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .media-card:hover .media-preview {
+      transform: scale(1.05);
+    }
+    .media-info {
+      padding: 12px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .media-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      word-break: break-all;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .media-meta {
+      font-size: 0.72rem;
+      color: var(--text-gray);
+      margin-bottom: 4px;
+    }
+    .media-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: auto;
+    }
+    .media-btn {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: var(--text-dark);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+    .media-btn:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+    .media-btn-view {
+      background: var(--admin-bg);
+      color: var(--accent);
+    }
+    .media-btn-view:hover {
+      background: #121212;
+      color: #ffffff;
+    }
+
+    /* Lightbox Modal */
+    .lightbox-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .lightbox-content {
+      max-width: 90%;
+      max-height: 80vh;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 3px solid #ffffff;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #ffffff;
+      transition: color 0.2s ease;
+    }
+    .lightbox-close:hover {
+      color: var(--accent);
+    }
+    .lightbox-caption {
+      color: #ffffff;
+      margin-top: 15px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    /* Filter Bar Layout & Matching Premium Styling */
+    .filter-bar {
+      display: flex !important;
+      align-items: center !important;
+      gap: 15px !important;
+      flex-wrap: wrap !important;
+      margin-bottom: 20px !important;
+      background: #f9fafb !important;
+      padding: 12px 20px !important;
+      border-radius: 8px !important;
+      border: 1px solid var(--border) !important;
+    }
+    .filter-group {
+      margin-bottom: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+    }
+    .filter-group label {
+      margin-bottom: 0 !important;
+      font-weight: 600 !important;
+      font-size: 0.88rem !important;
+      color: var(--text-dark) !important;
+      white-space: nowrap !important;
+    }
+    #filter-folder {
+      background: #ffffff !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 6px !important;
+      padding: 0 12px !important;
+      height: 38px !important;
+      font-size: 0.88rem !important;
+      font-weight: 500 !important;
+      color: var(--text-dark) !important;
+      cursor: pointer !important;
+      outline: none !important;
+      min-width: 320px !important;
+      transition: all 0.3s ease !important;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.03) !important;
+    }
+    #filter-folder:focus {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12) !important;
+    }
+    #btn-fetch-media {
+      background: #121212 !important;
+      color: #ffffff !important;
+      border: 1px solid #121212 !important;
+      padding: 0 20px !important;
+      font-size: 0.88rem !important;
+      font-weight: 600 !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      height: 38px !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+    }
+    #btn-fetch-media:hover {
+      background: var(--accent) !important;
+      border-color: var(--accent) !important;
+      color: #ffffff !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar"></aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>Cloudinary Media Explorer</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      
+      <!-- Folder Filter Bar -->
+      <div class="filter-bar">
+        <div class="filter-group" style="min-width: 300px;">
+          <label for="filter-folder">Select Asset Folder (Purpose)</label>
+          <select id="filter-folder" class="filter-control">
+            <optgroup label="Admin Panel Uploads (Content Management)">
+              <option value="services">📁 Services Uploads (services/)</option>
+              <option value="projects">📁 Project Gallery (projects/)</option>
+              <option value="floorplans">📁 Project Floor Plans (floorplans/)</option>
+              <option value="blogs">📁 Blog Post Photos (blogs/)</option>
+              <option value="team">📁 Team Member Photos (team/)</option>
+              <option value="testimonials">📁 Testimonial Client Photos (testimonials/)</option>
+              <option value="branding">📁 Branding & Logos (branding/)</option>
+            </optgroup>
+            <optgroup label="Public Website Uploads (Client Request Forms)">
+              <option value="consultations/images">📁 Booking Reference Images (consultations/images/)</option>
+              <option value="consultations/floorplans">📁 Booking Floor Plans (consultations/floorplans/)</option>
+            </optgroup>
+          </select>
+        </div>
+        
+        <button id="btn-fetch-media" class="btn-fetch">
+          <i class="fas fa-sync-alt"></i> Refresh Folder
+        </button>
+      </div>
+
+      <!-- Main Media Card -->
+      <div class="data-card" style="padding: 24px;">
+        <div class="card-header" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 15px;">
+          <h2 style="font-size: 1.15rem; color: var(--text-dark);">
+            <i class="fas fa-images"></i> Media Resources List
+          </h2>
+          <span id="folder-stats-label" style="font-size: 0.85rem; color: var(--text-gray);">Loading directory metadata...</span>
+        </div>
+
+        <div id="media-error-message" style="display: none; text-align: center; padding: 40px 20px;">
+          <i class="fas fa-info-circle" style="font-size: 3rem; color: var(--accent); margin-bottom: 15px;"></i>
+          <h3 style="font-size: 1.2rem; color: var(--text-dark); margin-bottom: 8px;">No Cloudinary Connection</h3>
+          <p style="color: var(--text-gray); max-width: 500px; margin: 0 auto;" id="error-description">Cloudinary credentials could not be loaded or are not configured in this environment.</p>
+        </div>
+
+        <div id="media-empty-message" style="display: none; text-align: center; padding: 50px 20px;">
+          <i class="far fa-folder-open" style="font-size: 3.5rem; color: var(--text-gray); margin-bottom: 15px;"></i>
+          <h3 style="font-size: 1.1rem; color: var(--text-dark); margin-bottom: 8px;">Empty Directory</h3>
+          <p style="color: var(--text-gray);">No uploaded images found under this purpose path in Cloudinary.</p>
+        </div>
+
+        <div id="media-loading-spinner" style="text-align: center; padding: 50px 20px;">
+          <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 15px;"></i>
+          <p style="color: var(--text-gray);">Fetching assets folder details from Cloudinary...</p>
+        </div>
+
+        <!-- CSS Grid -->
+        <div class="media-grid" id="cloudinary-media-grid" style="display: none;">
+          <!-- Items populated dynamically -->
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div class="lightbox-modal" id="media-lightbox-modal">
+    <button class="lightbox-close" id="close-lightbox-btn"><i class="fas fa-times"></i></button>
+    <img class="lightbox-content" id="lightbox-image" src="" alt="Full view preview">
+    <div class="lightbox-caption" id="lightbox-caption"></div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>
+    $(document).ready(function() {
+      // 1. Double check permission: Only SuperAdmins can be here
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        window.location.href = '/admin/login.html';
+        return;
+      }
+
+      // Fetch user profile info to ensure they are authorized
+      $.ajax({
+        url: '/api/auth/profile',
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
+        success: function(res) {
+          if (res.success && res.admin) {
+            $('#admin-user-display').text(res.admin.name || res.admin.username);
+            if (res.admin.role !== 'SuperAdmin') {
+              // Non-superadmins are rejected
+              alert('Access denied: Media Explorer requires SuperAdmin privileges.');
+              window.location.href = '/admin/dashboard';
+            } else {
+              // Fetch initial folder
+              fetchMediaFolder();
+            }
+          }
+        },
+        error: function() {
+          localStorage.removeItem('admin_token');
+          window.location.href = '/admin/login.html';
+        }
+      });
+
+      // 2. Fetch media resources from current selected folder
+      function fetchMediaFolder() {
+        $('#media-loading-spinner').show();
+        $('#cloudinary-media-grid').hide();
+        $('#media-error-message').hide();
+        $('#media-empty-message').hide();
+        $('#folder-stats-label').text('Connecting...');
+
+        const folder = $('#filter-folder').val();
+
+        $.ajax({
+          url: '/api/media',
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` },
+          data: { folder },
+          success: function(res) {
+            $('#media-loading-spinner').hide();
+            if (res.success) {
+              if (res.mode === 'local') {
+                $('#error-description').text('Your server is running in local-fallback mode. Uploaded assets are saved to local disks and can be accessed under the local uploads/ folder.');
+                $('#media-error-message').show();
+                $('#folder-stats-label').text('Local Fallback Active');
+                return;
+              }
+
+              const resources = res.resources || [];
+              if (resources.length === 0) {
+                $('#media-empty-message').show();
+                $('#folder-stats-label').text('0 files found (Total Size: 0 KB)');
+                return;
+              }
+
+              let totalBytes = 0;
+              resources.forEach(function(item) {
+                totalBytes += item.bytes || 0;
+              });
+
+              let sizeText = '';
+              if (totalBytes >= 1024 * 1024) {
+                sizeText = `${(totalBytes / (1024 * 1024)).toFixed(2)} MB`;
+              } else {
+                sizeText = `${(totalBytes / 1024).toFixed(1)} KB`;
+              }
+
+              $('#folder-stats-label').text(`${resources.length} files found (Total Size: ${sizeText})`);
+              
+              // Populate Grid
+              const grid = $('#cloudinary-media-grid');
+              grid.empty();
+
+              resources.forEach(function(item) {
+                const dateStr = new Date(item.created_at).toLocaleString();
+                const kbSize = (item.bytes / 1024).toFixed(1);
+                
+                const card = `
+                  <div class="media-card">
+                    <div class="media-preview-container" data-url="${item.url}" data-title="${item.public_id}">
+                      <img class="media-preview" src="${item.url}" alt="${item.public_id}">
+                    </div>
+                    <div class="media-info">
+                      <div class="media-title" title="${item.public_id}">${item.public_id}</div>
+                      <div>
+                        <div class="media-meta"><i class="far fa-hdd"></i> Size: ${kbSize} KB (${item.format.toUpperCase()})</div>
+                        <div class="media-meta"><i class="far fa-calendar-alt"></i> ${dateStr}</div>
+                      </div>
+                      <div class="media-actions">
+                        <button class="media-btn copy-url-btn" data-url="${item.url}">
+                          <i class="far fa-copy"></i> Copy Link
+                        </button>
+                        <a href="${item.url}" target="_blank" class="media-btn media-btn-view" style="text-decoration:none;">
+                          <i class="fas fa-external-link-alt"></i> Open
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                `;
+                grid.append(card);
+              });
+
+              grid.show();
+            } else {
+              $('#error-description').text(res.message || 'Could not fetch directory details.');
+              $('#media-error-message').show();
+            }
+          },
+          error: function(err) {
+            $('#media-loading-spinner').hide();
+            $('#error-description').text(err.responseJSON ? err.responseJSON.message : 'A connection error occurred while querying Cloudinary.');
+            $('#media-error-message').show();
+          }
+        });
+      }
+
+      // Event Listeners
+      $('#btn-fetch-media').click(fetchMediaFolder);
+      $('#filter-folder').change(fetchMediaFolder);
+
+      // Copy to Clipboard
+      $(document).on('click', '.copy-url-btn', function(e) {
+        e.preventDefault();
+        const url = $(this).data('url');
+        const btn = $(this);
+        
+        navigator.clipboard.writeText(url).then(function() {
+          btn.html('<i class="fas fa-check"></i> Copied!');
+          btn.css('background-color', '#10b981').css('color', '#ffffff');
+          setTimeout(function() {
+            btn.html('<i class="far fa-copy"></i> Copy Link');
+            btn.css('background-color', '').css('color', '');
+          }, 1500);
+        }, function() {
+          alert('Failed to copy link.');
+        });
+      });
+
+      // Lightbox actions
+      $(document).on('click', '.media-preview-container', function() {
+        const url = $(this).data('url');
+        const title = $(this).data('title');
+        $('#lightbox-image').attr('src', url);
+        $('#lightbox-caption').text(title);
+        $('#media-lightbox-modal').css('display', 'flex');
+      });
+
+      $('#close-lightbox-btn, #media-lightbox-modal').click(function(e) {
+        if (e.target === this || $(this).attr('id') === 'close-lightbox-btn') {
+          $('#media-lightbox-modal').css('display', 'none');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

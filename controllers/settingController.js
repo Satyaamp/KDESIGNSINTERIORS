@@ -22,12 +22,12 @@ const getSettings = async (req, res) => {
 // @access  Private (Admin only)
 const updateSettings = async (req, res) => {
   try {
-    const { 
-      siteName, 
-      contactEmail, 
-      contactPhone, 
-      whatsappNumber, 
-      address, 
+    const {
+      siteName,
+      contactEmail,
+      contactPhone,
+      whatsappNumber,
+      address,
       googleMapUrl,
       facebook,
       instagram,
@@ -37,12 +37,12 @@ const updateSettings = async (req, res) => {
       defaultMetaDescription,
       defaultKeywords
     } = req.body;
-    
+
     let settings = await Settings.findOne();
     if (!settings) {
       settings = await Settings.create({});
     }
-    
+
     if (siteName) settings.siteName = siteName;
     if (contactEmail && contactEmail !== settings.contactEmail) {
       settings.contactEmail = contactEmail;
@@ -52,28 +52,40 @@ const updateSettings = async (req, res) => {
     if (whatsappNumber) settings.whatsappNumber = whatsappNumber;
     if (address) settings.address = address;
     if (googleMapUrl !== undefined) settings.googleMapUrl = googleMapUrl;
-    
+
     settings.socialLinks = {
       facebook: facebook !== undefined ? facebook : settings.socialLinks.facebook,
       instagram: instagram !== undefined ? instagram : settings.socialLinks.instagram,
       linkedin: linkedin !== undefined ? linkedin : settings.socialLinks.linkedin,
       youtube: youtube !== undefined ? youtube : settings.socialLinks.youtube
     };
-    
+
     settings.seo = {
       defaultMetaTitle: defaultMetaTitle !== undefined ? defaultMetaTitle : settings.seo.defaultMetaTitle,
       defaultMetaDescription: defaultMetaDescription !== undefined ? defaultMetaDescription : settings.seo.defaultMetaDescription,
       defaultKeywords: defaultKeywords !== undefined ? defaultKeywords : settings.seo.defaultKeywords
     };
-    
+
     if (req.file) {
       if (settings.logo && settings.logo.public_id) {
         await deleteImage(settings.logo.public_id);
       }
       settings.logo = await uploadImage(req.file.path, 'branding');
     }
-    
+
     await settings.save();
+
+    // Record log settings update
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'UPDATE_SETTINGS',
+      description: `Updated system configurations`,
+      req
+    });
+
     res.json({ success: true, settings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -124,8 +136,29 @@ const sendEmailVerificationOtp = async (req, res) => {
 
     await sendMail(email, emailSubject, emailBody, emailHtml);
 
+    // Record OTP sent
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'SEND_OTP',
+      description: `Sent email verification OTP to '${email}'`,
+      req
+    });
+
     res.json({ success: true, message: 'Verification OTP sent successfully!' });
   } catch (error) {
+    const { recordLog } = require('../utils/logger');
+    await recordLog({
+      type: 'Error',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'SEND_OTP_FAILED',
+      description: `Failed to send email verification OTP to '${email}': ${error.message}`,
+      metadata: { error: error.message },
+      req
+    });
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -141,16 +174,41 @@ const verifyEmailVerificationOtp = async (req, res) => {
     }
 
     const storedEntry = global.tempEmailOtp ? global.tempEmailOtp[email] : null;
+    const { recordLog } = require('../utils/logger');
     if (!storedEntry) {
+      await recordLog({
+        type: 'Error',
+        adminId: req.admin._id,
+        username: req.admin.username,
+        action: 'OTP_VERIFICATION_FAILED',
+        description: `OTP verification failed for '${email}': No OTP requested`,
+        req
+      });
       return res.status(400).json({ success: false, message: 'No OTP requested for this email address.' });
     }
 
     if (Date.now() > storedEntry.expires) {
       delete global.tempEmailOtp[email];
+      await recordLog({
+        type: 'Error',
+        adminId: req.admin._id,
+        username: req.admin.username,
+        action: 'OTP_VERIFICATION_FAILED',
+        description: `OTP verification failed for '${email}': OTP has expired`,
+        req
+      });
       return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
     if (storedEntry.otp !== otp.trim()) {
+      await recordLog({
+        type: 'Error',
+        adminId: req.admin._id,
+        username: req.admin.username,
+        action: 'OTP_VERIFICATION_FAILED',
+        description: `OTP verification failed for '${email}': Invalid OTP code`,
+        req
+      });
       return res.status(400).json({ success: false, message: 'Invalid OTP code. Please try again.' });
     }
 
@@ -163,6 +221,15 @@ const verifyEmailVerificationOtp = async (req, res) => {
     settings.contactEmail = email;
     settings.isEmailVerified = true;
     await settings.save();
+
+    await recordLog({
+      type: 'Activity',
+      adminId: req.admin._id,
+      username: req.admin.username,
+      action: 'VERIFY_OTP_SUCCESS',
+      description: `Successfully verified and updated public notification email to '${email}'`,
+      req
+    });
 
     // Clear temp memory entry
     delete global.tempEmailOtp[email];

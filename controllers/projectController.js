@@ -94,12 +94,20 @@ const deleteProjectCategory = async (req, res) => {
 const getProjects = async (req, res) => {
   try {
     const { search, category, page = 1, limit = 12, status, location } = req.query;
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     
     if (status) {
       filter.status = status;
     } else if (req.query.admin !== 'true') {
       filter.status = 'Active';
+    }
+
+    if (req.query.submittedByRole) {
+      filter.submittedByRole = req.query.submittedByRole;
+    }
+
+    if (req.query.admin !== 'true') {
+      filter.approvalStatus = 'Approved';
     }
     
     if (category) {
@@ -148,8 +156,8 @@ const getProjects = async (req, res) => {
 // @access  Public
 const getProjectBySlug = async (req, res) => {
   try {
-    const project = await Project.findOne({ slug: req.params.slug }).populate('category', 'name slug');
-    if (!project) {
+    const project = await Project.findOne({ slug: req.params.slug, isDeleted: { $ne: true } }).populate('category', 'name slug');
+    if (!project || (req.query.admin !== 'true' && project.approvalStatus !== 'Approved')) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
     res.json({ success: true, project });
@@ -188,6 +196,10 @@ const createProject = async (req, res) => {
     }
     
     const slug = await makeUniqueSlug(Project, title);
+
+    const isSuperAdmin = req.admin && req.admin.role === 'SuperAdmin';
+    const approvalStatus = isSuperAdmin ? 'Approved' : 'Pending Approval';
+    const submittedBy = req.admin ? req.admin.username : 'System';
     
     const project = await Project.create({
       title,
@@ -201,6 +213,9 @@ const createProject = async (req, res) => {
       floorPlans: floorPlanUploads,
       status: status || 'Active',
       testimonials: testimonials || '',
+      approvalStatus,
+      submittedBy,
+      submittedByRole: req.admin ? req.admin.role : 'SuperAdmin',
       seo: {
         metaTitle: metaTitle || title,
         metaDescription: metaDescription || description.substring(0, 160),
@@ -386,14 +401,10 @@ const deleteProject = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
     
-    for (const img of project.images) {
-      await deleteImage(img.public_id);
-    }
-    for (const fp of project.floorPlans) {
-      await deleteImage(fp.public_id);
-    }
-    
-    await project.deleteOne();
+    project.isDeleted = true;
+    project.deletedAt = Date.now();
+    project.deletedBy = req.admin.username;
+    await project.save();
 
     // Record project deletion log
     const { recordLog } = require('../utils/logger');

@@ -34,6 +34,29 @@ const blogSchema = new mongoose.Schema({
     enum: ['Active', 'Inactive'],
     default: 'Active'
   },
+  approvalStatus: {
+    type: String,
+    enum: ['Approved', 'Pending Approval', 'Rejected'],
+    default: 'Approved'
+  },
+  submittedBy: {
+    type: String,
+    default: 'SuperAdmin'
+  },
+  submittedByRole: {
+    type: String,
+    default: 'SuperAdmin'
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date
+  },
+  deletedBy: {
+    type: String
+  },
   seo: {
     metaTitle: { type: String, default: '' },
     metaDescription: { type: String, default: '' },

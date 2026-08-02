@@ -50,6 +50,29 @@ const projectSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  approvalStatus: {
+    type: String,
+    enum: ['Approved', 'Pending Approval', 'Rejected'],
+    default: 'Approved'
+  },
+  submittedBy: {
+    type: String,
+    default: 'SuperAdmin'
+  },
+  submittedByRole: {
+    type: String,
+    default: 'SuperAdmin'
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date
+  },
+  deletedBy: {
+    type: String
+  },
   seo: {
     metaTitle: { type: String, default: '' },
     metaDescription: { type: String, default: '' },

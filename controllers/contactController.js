@@ -109,7 +109,7 @@ const createContact = async (req, res) => {
 const getContacts = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 10 } = req.query;
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
 
     if (status) {
       filter.status = status;
@@ -226,7 +226,11 @@ const deleteContact = async (req, res) => {
     if (!contact) {
       return res.status(404).json({ success: false, message: 'Contact request not found' });
     }
-    await contact.deleteOne();
+    
+    contact.isDeleted = true;
+    contact.deletedAt = Date.now();
+    contact.deletedBy = req.admin.username;
+    await contact.save();
 
     // Record activity log
     const { recordLog } = require('../utils/logger');

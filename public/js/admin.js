@@ -9,6 +9,92 @@ $(document).ready(function () {
   const sessionStartTime = Date.now();
   const path = window.location.pathname;
 
+  // Premium Floating Ghost Animation Helper
+  window.animateFloatingGhost = function(element, nameText, targetHref, isRestore = false) {
+    const row = $(element).closest('tr');
+    if (!row.length) return;
+
+    const startOffset = row.offset();
+    const startWidth = row.outerWidth();
+    const startHeight = row.outerHeight();
+
+    // Find target sidebar link
+    const sidebarLink = $(`.sidebar-menu a[href="${targetHref}"]`);
+    if (!sidebarLink.length) return;
+    const targetOffset = sidebarLink.offset();
+
+    // Create floating ghost
+    const ghost = $('<div class="sidebar-ghost-animation"></div>');
+    ghost.text(nameText);
+    ghost.css({
+      position: 'absolute',
+      top: startOffset.top,
+      left: startOffset.left,
+      width: startWidth,
+      height: startHeight,
+      background: isRestore ? 'rgba(16, 185, 129, 0.85)' : 'rgba(239, 68, 68, 0.85)',
+      border: '1px solid rgba(255,255,255,0.2)',
+      color: '#fff',
+      borderRadius: '6px',
+      zIndex: 99999,
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 15px',
+      boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
+      fontWeight: 'bold',
+      fontSize: '0.9rem',
+      opacity: 1,
+      transform: 'scale(1)',
+      transition: 'all 1.3s cubic-bezier(0.25, 1, 0.5, 1)'
+    });
+
+    $('body').append(ghost);
+
+    // Shrink and fade out original row
+    row.css({
+      transition: 'all 1.3s ease',
+      opacity: 0,
+      transform: 'translateX(-20px)'
+    });
+
+    // Float clone to sidebar link coordinates
+    setTimeout(() => {
+      ghost.css({
+        top: targetOffset.top,
+        left: targetOffset.left,
+        width: 150,
+        height: 30,
+        transform: 'scale(0.1)',
+        opacity: 0
+      });
+    }, 50);
+
+    // Bounce target sidebar link icon when animation completes
+    setTimeout(() => {
+      ghost.remove();
+      const icon = sidebarLink.find('i');
+      if (icon.length) {
+        icon.addClass('fa-bounce');
+        setTimeout(() => {
+          icon.removeClass('fa-bounce');
+        }, 1000);
+      }
+    }, 1350);
+  };
+
+  window.getSidebarLinkForType = function(type) {
+    switch (type) {
+      case 'Service': return '/admin/services';
+      case 'Project': return '/admin/projects';
+      case 'Blog': return '/admin/blogs';
+      case 'Testimonial': return '/admin/testimonials';
+      case 'TeamMember': return '/admin/team';
+      case 'Consultation': return '/admin/consultations';
+      case 'Contact': return '/admin/contacts';
+      default: return '/admin/dashboard';
+    }
+  };
+
   // Global AJAX handler to intercept session invalidation
   $(document).ajaxError(function (event, jqXHR, ajaxSettings, thrownError) {
     if (jqXHR.status === 401 && jqXHR.responseJSON && jqXHR.responseJSON.code === 'SESSION_INVALIDATED') {
@@ -76,6 +162,15 @@ $(document).ready(function () {
       sidebar.toggleClass('collapsed');
       const collapsed = sidebar.hasClass('collapsed');
       localStorage.setItem('sidebar_collapsed', collapsed ? 'true' : 'false');
+    });
+
+    // Collapsible Category Click Handler
+    $(document).on('click', '.category-header', function (e) {
+      e.preventDefault();
+      const parent = $(this).closest('.menu-category');
+      const submenu = parent.find('.category-sub-menu');
+      parent.toggleClass('open');
+      submenu.slideToggle(250);
     });
 
     // Mobile Hamburger Menu Injection
@@ -342,10 +437,10 @@ $(document).ready(function () {
       }
 
       // Hide menus based on permissions
-      $('.sidebar-menu li').each(function () {
+      $('.sidebar-menu li:not(.menu-category)').each(function () {
         const a = $(this).find('a');
         const href = a.attr('href');
-        if (!href) return;
+        if (!href || href === '#') return;
 
         const module = href.split('/').pop(); // Extract e.g. "services" from "/admin/services"
         if (module === 'dashboard' || module === 'login') return;
@@ -353,6 +448,16 @@ $(document).ready(function () {
         // Handle Role Matrix screen specifically
         if ($(this).hasClass('super-only')) {
           if (role !== 'SuperAdmin') {
+            $(this).hide();
+          } else {
+            $(this).show();
+          }
+          return;
+        }
+
+        // Handle Logs permission specifically
+        if ($(this).hasClass('logs-only')) {
+          if (role !== 'SuperAdmin' && !permissions.includes('logs') && !permissions.includes('logs_view')) {
             $(this).hide();
           } else {
             $(this).show();
@@ -371,12 +476,26 @@ $(document).ready(function () {
         }
       });
 
+      // Hide empty category menus automatically
+      $('.menu-category').each(function () {
+        const visibleSubItems = $(this).find('.category-sub-menu li').filter(function () {
+          return $(this).css('display') !== 'none';
+        });
+        if (visibleSubItems.length === 0) {
+          $(this).hide();
+        } else {
+          $(this).show();
+        }
+      });
+
       // Guard current page access
       const curModule = path.split('/').pop().replace('.html', '');
       if (curModule && curModule !== 'dashboard' && curModule !== 'login') {
         if (curModule === 'admins' && role !== 'SuperAdmin') {
           window.location.href = '/admin/dashboard';
-        } else if (curModule !== 'admins' && curModule !== 'profile' && role !== 'SuperAdmin' && !permissions.includes(curModule) && !permissions.includes(curModule + '_view')) {
+        } else if (curModule === 'trash' && role !== 'SuperAdmin') {
+          window.location.href = '/admin/dashboard';
+        } else if (curModule !== 'admins' && curModule !== 'trash' && curModule !== 'profile' && role !== 'SuperAdmin' && !permissions.includes(curModule) && !permissions.includes(curModule + '_view')) {
           window.location.href = '/admin/dashboard';
         }
       }
@@ -386,11 +505,20 @@ $(document).ready(function () {
     function highlightActiveAdminSidebarLink() {
       const path = window.location.pathname;
       $('.sidebar-menu li').removeClass('active');
-      $('.sidebar-menu li').each(function () {
-        const a = $(this).find('a');
-        const href = a.attr('href');
-        if (href && (path === href || path.includes(href))) {
-          $(this).addClass('active');
+      $('.menu-category').removeClass('open');
+      $('.category-sub-menu').hide();
+
+      $('.sidebar-menu a').each(function () {
+        const href = $(this).attr('href');
+        if (href && href !== '#' && (path === href || path.includes(href))) {
+          const li = $(this).parent();
+          li.addClass('active');
+          
+          const parentCategory = $(this).closest('.menu-category');
+          if (parentCategory.length) {
+            parentCategory.addClass('open');
+            parentCategory.find('.category-sub-menu').show();
+          }
         }
       });
     }
@@ -524,6 +652,8 @@ $(document).ready(function () {
     initAdminProfile();
   } else if (path.includes('admin/logs')) {
     initAdminLogs();
+  } else if (path.includes('admin/trash')) {
+    initAdminTrash();
   }
 });
 
@@ -594,13 +724,23 @@ function showToast(message, type = 'success') {
 // Highlights current tab in Sidebar
 function setupSidebarNavigation(path) {
   $('.sidebar-menu li').removeClass('active');
+  $('.menu-category').removeClass('open');
+  $('.category-sub-menu').hide();
+
   $('.sidebar-menu a').each(function () {
     const href = $(this).attr('href');
-    if (href && href.includes('categories')) {
+    if (href && href.includes('categories') && !$(this).find('i.fa-database').length) {
       $(this).html('<i class="fas fa-database"></i> Master');
     }
-    if (href && path.includes(href)) {
-      $(this).parent().addClass('active');
+    if (href && href !== '#' && (path === href || path.includes(href))) {
+      const li = $(this).parent();
+      li.addClass('active');
+      
+      const parentCategory = $(this).closest('.menu-category');
+      if (parentCategory.length) {
+        parentCategory.addClass('open');
+        parentCategory.find('.category-sub-menu').show();
+      }
     }
   });
 }
@@ -1472,6 +1612,11 @@ function initAdminServices() {
     loadServicesList($(this).val());
   });
 
+  // Filters binding
+  $(document).on('change', '#filter-service-status, #filter-service-role', function () {
+    loadServicesList();
+  });
+
   // Modal open
   $('#btn-add-service').click(function () {
     editId = null;
@@ -1649,19 +1794,25 @@ function initAdminServices() {
   });
 
   $(document).on('click', '.delete-service-btn', function () {
-    const id = $(this).data('id');
-    if (confirm('Are you sure you want to delete this service?')) {
-      $.ajax({
-        url: `/api/services/${id}`,
-        method: 'DELETE',
-        success: function (res) {
-          showToast('Service deleted successfully!');
-          loadServicesList();
-        },
-        error: function (err) {
-          showToast(err.responseJSON?.message || 'Delete failed', 'error');
-        }
-      });
+    const btn = this;
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+    if (confirm(`Are you sure you want to delete "${nameText}"?`)) {
+      animateFloatingGhost(btn, nameText, '/admin/trash', false);
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/services/${id}`,
+          method: 'DELETE',
+          success: function (res) {
+            showToast('Service deleted successfully!');
+            loadServicesList();
+          },
+          error: function (err) {
+            $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+            showToast(err.responseJSON?.message || 'Delete failed', 'error');
+          }
+        });
+      }, 1350);
     }
   });
 }
@@ -1673,20 +1824,56 @@ function loadServicesList(search = '', page = 1, callback) {
     page = 1;
   }
   const term = search || $('#search-services').val() || '';
-  $.get(`/api/services?admin=true&search=${term}&page=${page}`, function (res) {
+  const statusFilter = $('#filter-service-status').length ? $('#filter-service-status').val() : 'Active';
+  const roleFilter = $('#filter-service-role').length ? $('#filter-service-role').val() : '';
+
+  $.get(`/api/services?admin=true&search=${term}&page=${page}&status=${statusFilter}&submittedByRole=${roleFilter}`, function (res) {
     if (res.success) {
+      $('#services-count').text(res.pagination.total);
       let rows = '';
+      const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      const role = adminUser.role || 'Editor';
+
       res.services.forEach(s => {
         const img = s.image && s.image.url ? `<img src="${s.image.url}" class="row-img">` : '<span class="text-gray">No image</span>';
+        
+        let approvalBadge = '';
+        if (s.approvalStatus === 'Approved') {
+          approvalBadge = `<span class="status-pill success" style="margin-left: 5px;" title="Approved & published"><i class="fas fa-check-circle"></i> Approved</span>`;
+        } else if (s.approvalStatus === 'Pending Approval') {
+          approvalBadge = `<span class="status-pill warning" style="margin-left: 5px;" title="Submitted by ${s.submittedBy || 'N/A'}. Pending SuperAdmin approval."><i class="fas fa-clock"></i> Pending</span>`;
+        } else {
+          approvalBadge = `<span class="status-pill danger" style="margin-left: 5px;" title="Rejected by SuperAdmin"><i class="fas fa-times-circle"></i> Rejected</span>`;
+        }
+
+        const submittedInfo = s.submittedBy && s.submittedBy !== 'SuperAdmin' ? `<div style="font-size:0.72rem; color:var(--text-gray); margin-top:3px;">By: <strong>${s.submittedBy}</strong></div>` : '';
+
+        // Moderation buttons
+        let approveBtn = '';
+        if (role === 'SuperAdmin' && s.approvalStatus !== 'Approved') {
+          approveBtn = `<button class="icon-btn approve-content-btn" data-resource="services" data-id="${s._id}" title="Approve & Publish" style="background:#10B981; color:#fff; border-color:#10B981;"><i class="fas fa-check"></i></button>`;
+        }
+        let rejectBtn = '';
+        if (role === 'SuperAdmin' && s.approvalStatus === 'Pending Approval') {
+          rejectBtn = `<button class="icon-btn reject-content-btn" data-resource="services" data-id="${s._id}" title="Reject Item" style="background:#EF4444; color:#fff; border-color:#EF4444;"><i class="fas fa-times"></i></button>`;
+        }
+
         rows += `
           <tr>
             <td>${img}</td>
-            <td><strong>${s.title}</strong></td>
+            <td><strong>${s.title}</strong>${submittedInfo}</td>
             <td>/services/slug/${s.slug}</td>
-            <td><span class="status-pill ${s.status.toLowerCase()}">${s.status}</span></td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <span class="status-pill ${s.status.toLowerCase()}">${s.status}</span>
+                ${approvalBadge}
+              </div>
+            </td>
             <td>
               <div class="actions-cell">
                 <a href="/service-details?slug=${s.slug}" target="_blank" class="icon-btn icon-btn-view" title="View Public Page"><i class="fas fa-eye"></i></a>
+                ${approveBtn}
+                ${rejectBtn}
                 <button class="icon-btn icon-btn-edit edit-service-btn" data-id="${s._id}"><i class="fas fa-edit"></i></button>
                 <button class="icon-btn icon-btn-delete delete-service-btn" data-id="${s._id}"><i class="fas fa-trash-alt"></i></button>
               </div>
@@ -1718,6 +1905,11 @@ function initAdminProjects() {
   // Search box binding
   $('#search-projects').on('input', function () {
     loadProjectsList($(this).val());
+  });
+
+  // Filters binding
+  $(document).on('change', '#filter-project-status, #filter-project-role', function () {
+    loadProjectsList();
   });
 
   // Validate project images format on select
@@ -1909,19 +2101,25 @@ function initAdminProjects() {
   });
 
   $(document).on('click', '.delete-project-btn', function () {
-    const id = $(this).data('id');
-    if (confirm('Are you sure you want to delete this project?')) {
-      $.ajax({
-        url: `/api/projects/${id}`,
-        method: 'DELETE',
-        success: function (res) {
-          showToast('Project deleted successfully!');
-          loadProjectsList();
-        },
-        error: function (err) {
-          showToast(err.responseJSON?.message || 'Delete failed', 'error');
-        }
-      });
+    const btn = this;
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+    if (confirm(`Are you sure you want to delete "${nameText}"?`)) {
+      animateFloatingGhost(btn, nameText, '/admin/trash', false);
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/projects/${id}`,
+          method: 'DELETE',
+          success: function (res) {
+            showToast('Project deleted successfully!');
+            loadProjectsList();
+          },
+          error: function (err) {
+            $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+            showToast(err.responseJSON?.message || 'Delete failed', 'error');
+          }
+        });
+      }, 1350);
     }
   });
 }
@@ -1933,20 +2131,56 @@ function loadProjectsList(search = '', page = 1, callback) {
     page = 1;
   }
   const term = search || $('#search-projects').val() || '';
-  $.get(`/api/projects?admin=true&search=${term}&page=${page}`, function (res) {
+  const statusFilter = $('#filter-project-status').length ? $('#filter-project-status').val() : 'Active';
+  const roleFilter = $('#filter-project-role').length ? $('#filter-project-role').val() : '';
+
+  $.get(`/api/projects?admin=true&search=${term}&page=${page}&status=${statusFilter}&submittedByRole=${roleFilter}`, function (res) {
     if (res.success) {
+      $('#projects-count').text(res.pagination.total);
       let rows = '';
+      const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      const role = adminUser.role || 'Editor';
+
       res.projects.forEach(p => {
         const cover = p.images && p.images[0] ? `<img src="${p.images[0].url}" class="row-img">` : '<span class="text-gray">No image</span>';
+        
+        let approvalBadge = '';
+        if (p.approvalStatus === 'Approved') {
+          approvalBadge = `<span class="status-pill success" style="margin-left: 5px;" title="Approved & published"><i class="fas fa-check-circle"></i> Approved</span>`;
+        } else if (p.approvalStatus === 'Pending Approval') {
+          approvalBadge = `<span class="status-pill warning" style="margin-left: 5px;" title="Submitted by ${p.submittedBy || 'N/A'}. Pending SuperAdmin approval."><i class="fas fa-clock"></i> Pending</span>`;
+        } else {
+          approvalBadge = `<span class="status-pill danger" style="margin-left: 5px;" title="Rejected by SuperAdmin"><i class="fas fa-times-circle"></i> Rejected</span>`;
+        }
+
+        const submittedInfo = p.submittedBy && p.submittedBy !== 'SuperAdmin' ? `<div style="font-size:0.72rem; color:var(--text-gray); margin-top:3px;">By: <strong>${p.submittedBy}</strong></div>` : '';
+
+        // Moderation buttons
+        let approveBtn = '';
+        if (role === 'SuperAdmin' && p.approvalStatus !== 'Approved') {
+          approveBtn = `<button class="icon-btn approve-content-btn" data-resource="projects" data-id="${p._id}" title="Approve & Publish" style="background:#10B981; color:#fff; border-color:#10B981;"><i class="fas fa-check"></i></button>`;
+        }
+        let rejectBtn = '';
+        if (role === 'SuperAdmin' && p.approvalStatus === 'Pending Approval') {
+          rejectBtn = `<button class="icon-btn reject-content-btn" data-resource="projects" data-id="${p._id}" title="Reject Item" style="background:#EF4444; color:#fff; border-color:#EF4444;"><i class="fas fa-times"></i></button>`;
+        }
+
         rows += `
           <tr>
             <td>${cover}</td>
-            <td><strong>${p.title}</strong></td>
+            <td><strong>${p.title}</strong>${submittedInfo}</td>
             <td>${p.category ? p.category.name : '<span class="text-gray">None</span>'}</td>
-            <td><span class="status-pill ${p.status.toLowerCase()}">${p.status}</span></td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <span class="status-pill ${p.status.toLowerCase()}">${p.status}</span>
+                ${approvalBadge}
+              </div>
+            </td>
             <td>
               <div class="actions-cell">
                 <a href="/project-details?slug=${p.slug}" target="_blank" class="icon-btn icon-btn-view" title="View Public Page"><i class="fas fa-eye"></i></a>
+                ${approveBtn}
+                ${rejectBtn}
                 <button class="icon-btn icon-btn-edit edit-project-btn" data-id="${p._id}"><i class="fas fa-edit"></i></button>
                 <button class="icon-btn icon-btn-delete delete-project-btn" data-id="${p._id}"><i class="fas fa-trash-alt"></i></button>
               </div>
@@ -2001,6 +2235,11 @@ function initAdminBlogs() {
 
   $('#search-blogs').on('input', function () {
     loadBlogsList($(this).val());
+  });
+
+  // Filters binding
+  $(document).on('change', '#filter-blog-status, #filter-blog-role', function () {
+    loadBlogsList();
   });
 
   $('#btn-add-blog').click(function () {
@@ -2188,19 +2427,25 @@ function initAdminBlogs() {
   });
 
   $(document).on('click', '.delete-blog-btn', function () {
-    const id = $(this).data('id');
-    if (confirm('Are you sure you want to delete this blog post?')) {
-      $.ajax({
-        url: `/api/blogs/${id}`,
-        method: 'DELETE',
-        success: function (res) {
-          showToast('Blog deleted successfully!');
-          loadBlogsList();
-        },
-        error: function (err) {
-          showToast(err.responseJSON?.message || 'Delete failed', 'error');
-        }
-      });
+    const btn = this;
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+    if (confirm(`Are you sure you want to delete "${nameText}"?`)) {
+      animateFloatingGhost(btn, nameText, '/admin/trash', false);
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/blogs/${id}`,
+          method: 'DELETE',
+          success: function (res) {
+            showToast('Blog deleted successfully!');
+            loadBlogsList();
+          },
+          error: function (err) {
+            $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+            showToast(err.responseJSON?.message || 'Delete failed', 'error');
+          }
+        });
+      }, 1350);
     }
   });
 }
@@ -2212,20 +2457,56 @@ function loadBlogsList(search = '', page = 1, callback) {
     page = 1;
   }
   const term = search || $('#search-blogs').val() || '';
-  $.get(`/api/blogs?admin=true&search=${term}&page=${page}`, function (res) {
+  const statusFilter = $('#filter-blog-status').length ? $('#filter-blog-status').val() : 'Active';
+  const roleFilter = $('#filter-blog-role').length ? $('#filter-blog-role').val() : '';
+
+  $.get(`/api/blogs?admin=true&search=${term}&page=${page}&status=${statusFilter}&submittedByRole=${roleFilter}`, function (res) {
     if (res.success) {
+      $('#blogs-count').text(res.pagination.total);
       let rows = '';
+      const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      const role = adminUser.role || 'Editor';
+
       res.blogs.forEach(b => {
         const cover = b.featuredImage && b.featuredImage.url ? `<img src="${b.featuredImage.url}" class="row-img">` : '';
+        
+        let approvalBadge = '';
+        if (b.approvalStatus === 'Approved') {
+          approvalBadge = `<span class="status-pill success" style="margin-left: 5px;" title="Approved & published"><i class="fas fa-check-circle"></i> Approved</span>`;
+        } else if (b.approvalStatus === 'Pending Approval') {
+          approvalBadge = `<span class="status-pill warning" style="margin-left: 5px;" title="Submitted by ${b.submittedBy || 'N/A'}. Pending SuperAdmin approval."><i class="fas fa-clock"></i> Pending</span>`;
+        } else {
+          approvalBadge = `<span class="status-pill danger" style="margin-left: 5px;" title="Rejected by SuperAdmin"><i class="fas fa-times-circle"></i> Rejected</span>`;
+        }
+
+        const submittedInfo = b.submittedBy && b.submittedBy !== 'SuperAdmin' ? `<div style="font-size:0.72rem; color:var(--text-gray); margin-top:3px;">By: <strong>${b.submittedBy}</strong></div>` : '';
+
+        // Moderation buttons
+        let approveBtn = '';
+        if (role === 'SuperAdmin' && b.approvalStatus !== 'Approved') {
+          approveBtn = `<button class="icon-btn approve-content-btn" data-resource="blogs" data-id="${b._id}" title="Approve & Publish" style="background:#10B981; color:#fff; border-color:#10B981;"><i class="fas fa-check"></i></button>`;
+        }
+        let rejectBtn = '';
+        if (role === 'SuperAdmin' && b.approvalStatus === 'Pending Approval') {
+          rejectBtn = `<button class="icon-btn reject-content-btn" data-resource="blogs" data-id="${b._id}" title="Reject Item" style="background:#EF4444; color:#fff; border-color:#EF4444;"><i class="fas fa-times"></i></button>`;
+        }
+
         rows += `
           <tr>
             <td>${cover}</td>
-            <td><strong>${b.title}</strong></td>
+            <td><strong>${b.title}</strong>${submittedInfo}</td>
             <td>${b.category ? b.category.name : 'General'}</td>
-            <td><span class="status-pill ${b.status.toLowerCase()}">${b.status}</span></td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <span class="status-pill ${b.status.toLowerCase()}">${b.status}</span>
+                ${approvalBadge}
+              </div>
+            </td>
             <td>
               <div class="actions-cell">
                 <a href="/blog-details?slug=${b.slug}" target="_blank" class="icon-btn icon-btn-view" title="View Public Page"><i class="fas fa-eye"></i></a>
+                ${approveBtn}
+                ${rejectBtn}
                 <button class="icon-btn icon-btn-edit edit-blog-btn" data-id="${b._id}"><i class="fas fa-edit"></i></button>
                 <button class="icon-btn icon-btn-delete delete-blog-btn" data-id="${b._id}"><i class="fas fa-trash-alt"></i></button>
               </div>
@@ -2326,16 +2607,25 @@ function initAdminTestimonials() {
   });
 
   $(document).on('click', '.delete-testimonial-btn', function () {
-    const id = $(this).data('id');
-    if (confirm('Delete this testimonial?')) {
-      $.ajax({
-        url: `/api/testimonials/${id}`,
-        method: 'DELETE',
-        success: function () {
-          showToast('Testimonial deleted successfully');
-          loadTestimonialsList();
-        }
-      });
+    const btn = this;
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+    if (confirm(`Delete testimonial from "${nameText}"?`)) {
+      animateFloatingGhost(btn, nameText, '/admin/trash', false);
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/testimonials/${id}`,
+          method: 'DELETE',
+          success: function () {
+            showToast('Testimonial deleted successfully');
+            loadTestimonialsList();
+          },
+          error: function (err) {
+            $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+            showToast(err.responseJSON?.message || 'Delete failed', 'error');
+          }
+        });
+      }, 1350);
     }
   });
 }
@@ -2442,16 +2732,25 @@ function initAdminTeam() {
   });
 
   $(document).on('click', '.delete-team-btn', function () {
-    const id = $(this).data('id');
-    if (confirm('Delete this team member?')) {
-      $.ajax({
-        url: `/api/team/${id}`,
-        method: 'DELETE',
-        success: function () {
-          showToast('Team member deleted successfully');
-          loadTeamList();
-        }
-      });
+    const btn = this;
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+    if (confirm(`Delete team member "${nameText}"?`)) {
+      animateFloatingGhost(btn, nameText, '/admin/trash', false);
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/team/${id}`,
+          method: 'DELETE',
+          success: function () {
+            showToast('Team member deleted successfully');
+            loadTeamList();
+          },
+          error: function (err) {
+            $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+            showToast(err.responseJSON?.message || 'Delete failed', 'error');
+          }
+        });
+      }, 1350);
     }
   });
 }
@@ -2488,9 +2787,31 @@ function loadTeamList(callback) {
 // --- Consultations List View ---
 let loadedConsultations = [];
 
+let allConsultations = [];
+let calendarYear = new Date().getFullYear();
+let calendarMonth = new Date().getMonth();
+
 function initAdminConsultations() {
   window.setupModuleRefresh('.data-card .card-header', 'btn-refresh-consultations', loadConsultationsList);
   loadConsultationsList();
+
+  // Toggle View Click Handlers
+  $('#btn-view-table').click(function (e) {
+    e.preventDefault();
+    $('.btn-toggle').removeClass('active');
+    $(this).addClass('active');
+    $('#consultations-list-view').show();
+    $('#consultations-calendar-view').hide();
+  });
+
+  $('#btn-view-calendar').click(function (e) {
+    e.preventDefault();
+    $('.btn-toggle').removeClass('active');
+    $(this).addClass('active');
+    $('#consultations-list-view').hide();
+    $('#consultations-calendar-view').show();
+    buildConsultationsCalendar();
+  });
 
   $(document).on('change', '.consult-status-select', function () {
     const id = $(this).data('id');
@@ -2511,27 +2832,222 @@ function initAdminConsultations() {
   });
 
   $(document).on('click', '.delete-consult-btn', function () {
-    const id = $(this).data('id');
-    if (confirm('Delete this request permanently?')) {
-      $.ajax({
-        url: `/api/consultations/${id}`,
-        method: 'DELETE',
-        headers: {
-          'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
-        },
-        success: function () {
-          showToast('Request deleted.');
-          loadConsultationsList();
-        }
-      });
+    const btn = this;
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+    if (confirm(`Delete consultation request from "${nameText}"?`)) {
+      animateFloatingGhost(btn, nameText, '/admin/trash', false);
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/consultations/${id}`,
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+          },
+          success: function () {
+            showToast('Request deleted.');
+            loadConsultationsList();
+          },
+          error: function (err) {
+            $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+            showToast(err.responseJSON?.message || 'Delete failed', 'error');
+          }
+        });
+      }, 1350);
     }
   });
+
+  // Modal Popover for overload calendar days
+  $(document).on('click', '.calendar-event-more', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const dateStr = $(this).data('date');
+    const targetDate = new Date(dateStr);
+    
+    const dayBookings = allConsultations.filter(c => {
+      const bDate = new Date(c.createdAt);
+      return bDate.toDateString() === targetDate.toDateString();
+    });
+
+    let popoverHtml = `
+      <div class="spotlight-backdrop" id="calendar-day-modal" style="display: flex; align-items: center; justify-content: center;">
+        <div class="spotlight-card" style="max-width: 480px; width: 90%; background: #1f2937; border-radius: 12px; border: 1px solid rgba(197, 168, 128, 0.25);">
+          <div class="spotlight-search-wrapper" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 14px 20px;">
+            <h3 style="color:#fff; font-size:1.05rem; margin:0; display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-calendar-day" style="color:var(--accent);"></i> 
+              Bookings: ${targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </h3>
+            <button id="close-calendar-day-modal" style="background:none; border:none; color:#9ca3af; font-size:1.2rem; cursor:pointer; padding:4px;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div style="padding:20px; display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; background: #111827;">
+    `;
+
+    dayBookings.forEach(c => {
+      const statusClass = 'calendar-event-' + c.status.toLowerCase();
+      popoverHtml += `
+        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <div>
+            <div style="color:#fff; font-weight:bold; font-size:0.88rem;">${c.name}</div>
+            <div style="color:#9ca3af; font-size:0.75rem; margin-top:2px;">Type: ${c.projectType || 'N/A'} | Size: ${c.projectSize ? c.projectSize + ' SQFT' : 'N/A'}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+            <span class="calendar-event-item ${statusClass}" style="padding:4px 8px; border-radius:4px; font-size:0.7rem; pointer-events:none; font-weight:600; display:inline-block;">${c.status}</span>
+            <a href="/admin/consultation-details.html?id=${c._id}" target="_blank" class="icon-btn icon-btn-view" style="padding:6px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; background:#c5a880; color:#fff;" title="View Details"><i class="fas fa-eye"></i></a>
+          </div>
+        </div>
+      `;
+    });
+
+    popoverHtml += `
+          </div>
+        </div>
+      </div>
+    `;
+
+    $('body').append(popoverHtml);
+
+    // Event handlers for modal closure
+    $('#close-calendar-day-modal').click(function () {
+      $('#calendar-day-modal').remove();
+    });
+    
+    $('#calendar-day-modal').click(function(e) {
+      if (e.target === this) {
+        $(this).remove();
+      }
+    });
+  });
+}
+
+function buildConsultationsCalendar() {
+  const container = $('#consultations-calendar-view');
+  container.empty();
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  // Render Header Structure
+  const headerHtml = `
+    <div class="custom-calendar-container">
+      <div class="calendar-top-bar">
+        <button class="calendar-nav-btn" id="cal-prev-btn"><i class="fas fa-chevron-left"></i> Prev</button>
+        <h3 class="calendar-month-title">${monthNames[calendarMonth]} ${calendarYear}</h3>
+        <button class="calendar-nav-btn" id="cal-next-btn">Next <i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div class="calendar-weekdays-grid">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+      <div class="calendar-days-grid" id="calendar-days-mount"></div>
+    </div>
+  `;
+  container.html(headerHtml);
+
+  // Nav actions
+  $('#cal-prev-btn').click(function (e) {
+    e.preventDefault();
+    calendarMonth--;
+    if (calendarMonth < 0) {
+      calendarMonth = 11;
+      calendarYear--;
+    }
+    buildConsultationsCalendar();
+  });
+
+  $('#cal-next-btn').click(function (e) {
+    e.preventDefault();
+    calendarMonth++;
+    if (calendarMonth > 11) {
+      calendarMonth = 0;
+      calendarYear++;
+    }
+    buildConsultationsCalendar();
+  });
+
+  const daysMount = $('#calendar-days-mount');
+
+  // Calculate first day index & month parameters
+  const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay();
+  const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const prevMonthTotalDays = new Date(calendarYear, calendarMonth, 0).getDate();
+
+  // Prev month cells padding
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const dayNum = prevMonthTotalDays - i;
+    daysMount.append(`
+      <div class="calendar-day-cell other-month">
+        <span class="calendar-day-number">${dayNum}</span>
+      </div>
+    `);
+  }
+
+  const today = new Date();
+
+  // Current month day cells
+  for (let day = 1; day <= totalDays; day++) {
+    const cellDate = new Date(calendarYear, calendarMonth, day);
+    const isToday = cellDate.toDateString() === today.toDateString() ? 'today' : '';
+
+    // Find consultations matching this specific date
+    const dayBookings = allConsultations.filter(c => {
+      const bDate = new Date(c.createdAt);
+      return bDate.getFullYear() === calendarYear &&
+        bDate.getMonth() === calendarMonth &&
+        bDate.getDate() === day;
+    });
+
+    let eventsHtml = '';
+    const maxVisible = 2;
+    
+    dayBookings.slice(0, maxVisible).forEach(c => {
+      const statusClass = 'calendar-event-' + c.status.toLowerCase();
+      eventsHtml += `
+        <div class="calendar-event-item ${statusClass}" title="${c.name} - ${c.projectType}" onclick="event.stopPropagation(); window.location.href='/admin/consultation-details.html?id=${c._id}'">
+          <i class="fas fa-info-circle" style="font-size: 8px;"></i> ${c.name}
+        </div>
+      `;
+    });
+
+    if (dayBookings.length > maxVisible) {
+      eventsHtml += `
+        <div class="calendar-event-more" data-date="${cellDate.toDateString()}" style="font-size: 0.68rem; color: var(--accent); font-weight: 600; text-align: center; margin-top: 4px; padding: 4px; background: rgba(197, 168, 128, 0.08); border-radius: 4px; border: 1px dashed rgba(197, 168, 128, 0.3); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(197, 168, 128, 0.16)'" onmouseout="this.style.background='rgba(197, 168, 128, 0.08)'">
+          + ${dayBookings.length - maxVisible} more
+        </div>
+      `;
+    }
+
+    daysMount.append(`
+      <div class="calendar-day-cell ${isToday}">
+        <span class="calendar-day-number">${day}</span>
+        <div style="display:flex; flex-direction:column; gap:4px; margin-top:5px; overflow-y:auto; flex-grow:1;">
+          ${eventsHtml}
+        </div>
+      </div>
+    `);
+  }
+
+  // Next month cells padding
+  const totalGridCells = firstDayIndex + totalDays;
+  const remainingPadding = (7 - (totalGridCells % 7)) % 7;
+  for (let i = 1; i <= remainingPadding; i++) {
+    daysMount.append(`
+      <div class="calendar-day-cell other-month">
+        <span class="calendar-day-number">${i}</span>
+      </div>
+    `);
+  }
 }
 
 function loadConsultationsList(callback) {
   $.get('/api/consultations', function (res) {
     if (res.success) {
       loadedConsultations = res.consultations;
+      allConsultations = res.consultations;
+
       let rows = '';
       res.consultations.forEach(c => {
         rows += `
@@ -2566,6 +3082,11 @@ function loadConsultationsList(callback) {
         `;
       });
       $('#consultations-table-body').html(rows || '<tr><td colspan="5" class="text-center">No consultation requests found.</td></tr>');
+
+      // Rebuild calendar if calendar view container is visible
+      if ($('#consultations-calendar-view').is(':visible')) {
+        buildConsultationsCalendar();
+      }
     }
     if (typeof callback === 'function') callback();
   }).fail(function () {
@@ -2601,16 +3122,25 @@ function initAdminContacts() {
   });
 
   $(document).on('click', '.delete-contact-btn', function () {
-    const id = $(this).data('id');
-    if (confirm('Delete inquiry?')) {
-      $.ajax({
-        url: `/api/contacts/${id}`,
-        method: 'DELETE',
-        success: function () {
-          showToast('Inquiry deleted.');
-          loadContactsList();
-        }
-      });
+    const btn = this;
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+    if (confirm(`Delete inquiry from "${nameText}"?`)) {
+      animateFloatingGhost(btn, nameText, '/admin/trash', false);
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/contacts/${id}`,
+          method: 'DELETE',
+          success: function () {
+            showToast('Inquiry deleted.');
+            loadContactsList();
+          },
+          error: function (err) {
+            $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+            showToast(err.responseJSON?.message || 'Delete failed', 'error');
+          }
+        });
+      }, 1350);
     }
   });
 
@@ -2740,8 +3270,47 @@ function initAdminSettings() {
       }
 
       if (settings.logo && settings.logo.url) {
-        $('#logo-preview').html(`<img src="${settings.logo.url}" style="height:60px; width:auto; object-fit:contain;">`);
+        renderLogoPreview(settings.logo.url);
       }
+    }
+  });
+
+  function renderLogoPreview(url) {
+    $('#logo-preview').html(`
+      <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+        <img src="${url}" style="height:60px; width:auto; object-fit:contain;">
+        <button type="button" id="btn-delete-logo" style="background:none; border:1px solid #f87171; color:#f87171; padding:6px 12px; border-radius:6px; font-size:0.8rem; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'"><i class="fas fa-trash-alt"></i> Remove Existing Logo</button>
+      </div>
+    `);
+  }
+
+  // Handle Logo deletion
+  $(document).on('click', '#btn-delete-logo', function (e) {
+    e.preventDefault();
+    if (confirm('Are you sure you want to delete the website logo?')) {
+      const btn = $(this);
+      btn.prop('disabled', true).html('<i class="fas fa-circle-notch fa-spin"></i> Removing...');
+
+      $.ajax({
+        url: '/api/settings',
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({ deleteLogo: true }),
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+        },
+        success: function (res) {
+          if (res.success) {
+            showToast('Logo removed successfully!');
+            $('#logo-preview').html('<span class="text-gray">No logo uploaded</span>');
+            $('#logo').val('');
+          }
+        },
+        error: function (err) {
+          btn.prop('disabled', false).html('<i class="fas fa-trash-alt"></i> Remove Existing Logo');
+          alert(err.responseJSON?.message || 'Failed to remove logo.');
+        }
+      });
     }
   });
 
@@ -2915,15 +3484,83 @@ function initAdminCategories() {
   loadProjectCatsList();
   loadBlogCatsList();
 
+  // --- Tabs Dynamic Sliding Indicator & Hover Actions ---
+  function updateTabIndicator(element) {
+    const indicator = $('.tabs-indicator');
+    if (!indicator.length || !element || !element.length) return;
+
+    const tabContainer = $('.admin-tabs');
+    const parentOffset = tabContainer.offset();
+    const elementOffset = element.offset();
+
+    indicator.css({
+      left: elementOffset.left - parentOffset.left,
+      width: element.outerWidth()
+    });
+  }
+
+  // Position indicator initially after load
+  setTimeout(() => {
+    updateTabIndicator($('.tab-btn.active'));
+    $('.tab-btn.active').css('color', '#ffffff');
+  }, 200);
+
+  // Re-align indicator on window resize to keep it pixel perfect
+  $(window).resize(function() {
+    updateTabIndicator($('.tab-btn.active'));
+  });
+
+  $(document).on('mouseenter', '.tab-btn', function () {
+    updateTabIndicator($(this));
+    $('.tab-btn').css('color', '#64748b');
+    $(this).css('color', '#ffffff');
+  });
+
+  $(document).on('mouseleave', '.admin-tabs', function () {
+    const activeTab = $('.tab-btn.active');
+    updateTabIndicator(activeTab);
+    $('.tab-btn').css('color', '#64748b');
+    activeTab.css('color', '#ffffff');
+  });
+
   // Tabs Navigation click binding
   $('.tab-btn').click(function (e) {
     e.preventDefault();
+    const tabName = $(this).attr('data-tab');
+    
+    const activePane = $('.tab-pane.active');
+    const nextPane = $('#tab-' + tabName);
+
+    if (activePane.attr('id') === nextPane.attr('id')) return;
+
     $('.tab-btn').removeClass('active');
     $(this).addClass('active');
+    updateTabIndicator($(this));
 
-    const tabName = $(this).attr('data-tab');
-    $('.tab-pane').hide();
-    $('#tab-' + tabName).show();
+    // Swipe-fade swipe tab transition animation
+    activePane.css({
+      transition: 'all 0.38s ease',
+      opacity: 0,
+      transform: tabName === 'cities' ? 'translateX(-30px)' : 'translateX(30px)'
+    });
+
+    setTimeout(() => {
+      activePane.hide().removeClass('active').css({ transform: 'none', opacity: 1 });
+      
+      nextPane.css({
+        display: 'block',
+        opacity: 0,
+        transform: tabName === 'cities' ? 'translateX(30px)' : 'translateX(-30px)'
+      });
+      
+      nextPane[0].offsetHeight; // force DOM reflow to start transition
+      
+      nextPane.addClass('active').css({
+        transition: 'all 0.38s ease',
+        opacity: 1,
+        transform: 'none'
+      });
+    }, 380);
   });
 
   // --- Project Categories Actions ---
@@ -3064,6 +3701,214 @@ function initAdminCategories() {
     }
   });
 
+  // --- Category Transfer / Conversion Actions ---
+  $(document).on('click', '.transfer-cat-btn', function () {
+    const id = $(this).data('id');
+    const name = $(this).data('name');
+    const type = $(this).data('type'); // 'projects' or 'blogs'
+
+    $('#transfer-source-id').val(id);
+    $('#transfer-source-type').val(type);
+    $('#transfer-category-name-display').text(name);
+
+    // Pre-select opposite type as default destination
+    const oppositeType = type === 'projects' ? 'blogs' : 'projects';
+    $('#transfer-destination-type').val(oppositeType);
+    $('#transfer-mode').val('copy'); // Default to copy (safer)
+    $('#transfer-fallback-reassign-group').hide();
+    $('#transfer-fallback-category').empty();
+
+    // Open modal
+    $('#category-transfer-modal').addClass('open');
+
+    // Perform check of linked items to determine if fallback reassign is required
+    $.get(`/api/categories/check-linked?type=${type}&id=${id}`, function (res) {
+      if (res.success && res.count > 0) {
+        // Show fallback reassignment section if mode is 'move'
+        $('#transfer-mode').off('change').on('change', function () {
+          const modeVal = $(this).val();
+          if (modeVal === 'move') {
+            loadFallbackCategories(type, id);
+          } else {
+            $('#transfer-fallback-reassign-group').hide();
+          }
+        });
+      } else {
+        // No items linked, no need for fallback reassign UI
+        $('#transfer-mode').off('change').on('change', function () {
+          $('#transfer-fallback-reassign-group').hide();
+        });
+      }
+    });
+  });
+
+  function loadFallbackCategories(type, currentId) {
+    const url = type === 'projects' ? '/api/project-categories?admin=true' : '/api/blog-categories?admin=true';
+    $.get(url, function (res) {
+      if (res.success) {
+        let opts = '';
+        res.categories.forEach(cat => {
+          if (cat._id !== currentId) {
+            opts += `<option value="${cat._id}">${cat.name}</option>`;
+          }
+        });
+        if (opts) {
+          $('#transfer-fallback-category').html(opts);
+          $('#transfer-fallback-reassign-group').show();
+        } else {
+          // No other categories exist to reassign to!
+          $('#transfer-fallback-category').html('<option value="">None (Elements will remain uncategorized)</option>');
+          $('#transfer-fallback-reassign-group').show();
+        }
+      }
+    });
+  }
+
+  $('#btn-cancel-transfer, #category-transfer-modal .modal-close').click(function () {
+    $('#category-transfer-modal').removeClass('open');
+  });
+
+  $('#category-transfer-form').submit(function (e) {
+    e.preventDefault();
+    const sourceId = $('#transfer-source-id').val();
+    const sourceType = $('#transfer-source-type').val();
+    const destinationType = $('#transfer-destination-type').val();
+    const mode = $('#transfer-mode').val();
+    const fallbackCategoryId = $('#transfer-fallback-category').val();
+
+    const submitBtn = $('#btn-submit-transfer');
+
+    if (sourceType === destinationType) {
+      alert("Destination collection must be different from source collection.");
+      return;
+    }
+
+    const categoryName = $('#transfer-category-name-display').text();
+    const sourceRow = $(`.transfer-cat-btn[data-id="${sourceId}"]`).closest('tr');
+    if (sourceRow.length === 0) {
+      alert('Original row not found. Please refresh page.');
+      return;
+    }
+
+    const startOffset = sourceRow.offset();
+    const startWidth = sourceRow.outerWidth();
+    const startHeight = sourceRow.outerHeight();
+
+    const destTable = destinationType === 'projects' ? $('#project-cats-table-body') : $('#blog-cats-table-body');
+    const destOffset = destTable.offset();
+    const destHeight = destTable.height();
+    const destWidth = destTable.width();
+
+    // Create the floating ghost/solid transferring element
+    const ghost = $('<div class="ghost-transfer-element"></div>');
+    ghost.text(categoryName);
+    
+    // Style ghost element: move gets solid purple, copy gets dashed border transparent ghost look
+    ghost.css({
+      position: 'absolute',
+      top: startOffset.top,
+      left: startOffset.left,
+      width: startWidth,
+      height: startHeight,
+      background: mode === 'move' ? '#8b5cf6' : 'rgba(139, 92, 246, 0.25)',
+      border: mode === 'copy' ? '2px dashed #8b5cf6' : '1px solid rgba(255,255,255,0.15)',
+      backdropFilter: mode === 'copy' ? 'blur(3px)' : 'none',
+      color: mode === 'copy' ? '#8b5cf6' : '#fff',
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 15px',
+      boxShadow: mode === 'move' ? '0 15px 30px rgba(0,0,0,0.35)' : '0 10px 20px rgba(139, 92, 246, 0.15)',
+      zIndex: 99999,
+      fontWeight: 'bold',
+      fontSize: '0.95rem',
+      opacity: mode === 'copy' ? 0.8 : 1,
+      transform: 'scale(1)',
+      transition: 'all 1.6s cubic-bezier(0.25, 1, 0.5, 1)'
+    });
+
+    $('body').append(ghost);
+
+    // Apply immediate animations to original row on category page
+    if (mode === 'move') {
+      sourceRow.css({
+        transition: 'all 1.6s ease',
+        opacity: 0,
+        transform: 'translateX(-20px)'
+      });
+    } else {
+      sourceRow.css('box-shadow', 'inset 0 0 15px rgba(139,92,246,0.3)');
+      setTimeout(() => {
+        sourceRow.css('box-shadow', 'none');
+      }, 1600);
+    }
+
+    // Trigger the float translation to target table bottom
+    setTimeout(() => {
+      ghost.css({
+        top: destOffset.top + destHeight,
+        left: destOffset.left,
+        width: destWidth,
+        transform: 'scale(0.95)',
+        opacity: mode === 'copy' ? 0.4 : 0.85
+      });
+    }, 50);
+
+    // Close the options modal immediately so the user can witness the float animation
+    $('#category-transfer-modal').removeClass('open');
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+
+    // Wait for the animation path to complete, then execute database change
+    setTimeout(() => {
+      $.ajax({
+        url: '/api/categories/transfer',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          sourceId,
+          sourceType,
+          destinationType,
+          mode,
+          fallbackCategoryId
+        }),
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+        },
+        success: function (res) {
+          submitBtn.prop('disabled', false).html('Execute Conversion');
+          
+          // Animate dissolution of ghost element into target table
+          ghost.css({
+            transform: 'scale(0.4)',
+            opacity: 0,
+            transition: 'all 0.4s ease'
+          });
+          setTimeout(() => { ghost.remove(); }, 400);
+
+          if (res.success) {
+            showToast(res.message);
+            
+            // Add to session tracking sets for persistent highlights until hard refresh
+            if (res.mode === 'move') {
+              sessionMovedCategoryIds.add(res.destId);
+            } else if (res.mode === 'copy') {
+              sessionCopiedCategoryIds.add(res.destId);
+            }
+            
+            loadProjectCatsList();
+            loadBlogCatsList();
+          }
+        },
+        error: function (err) {
+          submitBtn.prop('disabled', false).html('Execute Conversion');
+          ghost.remove();
+          sourceRow.css({ opacity: 1, transform: 'none' });
+          showToast(err.responseJSON?.message || 'Execution failed', 'error');
+        }
+      });
+    }, 1650);
+  });
+
   // --- Serving Cities Actions ---
   let editCityId = null;
   loadCitiesList();
@@ -3173,17 +4018,29 @@ function initAdminCategories() {
   }
 }
 
+// Session state to track converted categories until page refresh
+const sessionCopiedCategoryIds = new Set();
+const sessionMovedCategoryIds = new Set();
+
 function loadProjectCatsList(callback) {
   $.get('/api/project-categories?admin=true', function (res) {
     if (res.success) {
       let rows = '';
       res.categories.forEach(c => {
+        let rowClass = '';
+        if (sessionMovedCategoryIds.has(c._id)) {
+          rowClass = 'row-session-moved';
+        } else if (sessionCopiedCategoryIds.has(c._id)) {
+          rowClass = 'row-session-copied';
+        }
+
         rows += `
-          <tr>
+          <tr class="${rowClass}">
             <td><strong>${c.name}</strong></td>
             <td><span class="status-pill ${c.status.toLowerCase()}">${c.status}</span></td>
             <td>
               <div class="actions-cell">
+                <button class="icon-btn transfer-cat-btn" data-type="projects" data-id="${c._id}" data-name="${c.name}" title="Copy / Move Category" style="background:#8b5cf6; color:#fff; border-color:#8b5cf6;"><i class="fas fa-exchange-alt"></i></button>
                 <button class="icon-btn icon-btn-edit edit-project-cat-btn" data-id="${c._id}"><i class="fas fa-edit"></i></button>
                 <button class="icon-btn icon-btn-delete delete-project-cat-btn" data-id="${c._id}"><i class="fas fa-trash-alt"></i></button>
               </div>
@@ -3204,12 +4061,20 @@ function loadBlogCatsList(callback) {
     if (res.success) {
       let rows = '';
       res.categories.forEach(c => {
+        let rowClass = '';
+        if (sessionMovedCategoryIds.has(c._id)) {
+          rowClass = 'row-session-moved';
+        } else if (sessionCopiedCategoryIds.has(c._id)) {
+          rowClass = 'row-session-copied';
+        }
+
         rows += `
-          <tr>
+          <tr class="${rowClass}">
             <td><strong>${c.name}</strong></td>
             <td><span class="status-pill ${c.status.toLowerCase()}">${c.status}</span></td>
             <td>
               <div class="actions-cell">
+                <button class="icon-btn transfer-cat-btn" data-type="blogs" data-id="${c._id}" data-name="${c.name}" title="Copy / Move Category" style="background:#8b5cf6; color:#fff; border-color:#8b5cf6;"><i class="fas fa-exchange-alt"></i></button>
                 <button class="icon-btn icon-btn-edit edit-blog-cat-btn" data-id="${c._id}"><i class="fas fa-edit"></i></button>
                 <button class="icon-btn icon-btn-delete delete-blog-cat-btn" data-id="${c._id}"><i class="fas fa-trash-alt"></i></button>
               </div>
@@ -4086,3 +4951,336 @@ function initAdminLogs() {
     });
   }
 }
+
+// Content Moderation Click Handlers
+$(document).on('click', '.approve-content-btn', function (e) {
+  e.preventDefault();
+  const btn = $(this);
+  const resource = btn.data('resource');
+  const id = btn.data('id');
+  
+  if (confirm('Approve and publish this item live to the public website?')) {
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+    $.ajax({
+      url: `/api/moderate/${resource}/${id}`,
+      method: 'PUT',
+      contentType: 'application/json',
+      data: JSON.stringify({ status: 'Approved' }),
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+      },
+      success: function (res) {
+        showToast('Content approved and published successfully!');
+        if (resource === 'services') loadServicesList();
+        else if (resource === 'projects') loadProjectsList();
+        else if (resource === 'blogs') loadBlogsList();
+      },
+      error: function (err) {
+        btn.prop('disabled', false).html('<i class="fas fa-check"></i>');
+        alert(err.responseJSON?.message || 'Moderation request failed.');
+      }
+    });
+  }
+});
+
+$(document).on('click', '.reject-content-btn', function (e) {
+  e.preventDefault();
+  const btn = $(this);
+  const resource = btn.data('resource');
+  const id = btn.data('id');
+  
+  if (confirm('Are you sure you want to reject this item? It will be hidden from the public website.')) {
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+    $.ajax({
+      url: `/api/moderate/${resource}/${id}`,
+      method: 'PUT',
+      contentType: 'application/json',
+      data: JSON.stringify({ status: 'Rejected' }),
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+      },
+      success: function (res) {
+        showToast('Content rejected successfully.');
+        if (resource === 'services') loadServicesList();
+        else if (resource === 'projects') loadProjectsList();
+        else if (resource === 'blogs') loadBlogsList();
+      },
+      error: function (err) {
+        btn.prop('disabled', false).html('<i class="fas fa-times"></i>');
+        alert(err.responseJSON?.message || 'Moderation request failed.');
+      }
+    });
+  }
+});
+
+// Global Keyboard Shortcut for Spotlight Command Search
+$(document).keydown(function (e) {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    toggleSpotlightSearch();
+  }
+});
+
+function toggleSpotlightSearch() {
+  let modal = $('#spotlight-search-modal');
+  if (modal.length) {
+    modal.remove();
+    return;
+  }
+
+  const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+  const role = adminUser.role || 'Editor';
+
+  const commands = [
+    { title: 'Dashboard Analytics', url: '/admin/dashboard', icon: 'fa-chart-line', category: 'Navigation' },
+    { title: 'Services List Manager', url: '/admin/services', icon: 'fa-tools', category: 'Content Management' },
+    { title: 'Projects Showcase List', url: '/admin/projects', icon: 'fa-building', category: 'Content Management' },
+    { title: 'Master Project Categories', url: '/admin/categories', icon: 'fa-folder-tree', category: 'Content Management' },
+    { title: 'Blogs & Articles list', url: '/admin/blogs', icon: 'fa-newspaper', category: 'Content Management' },
+    { title: 'Client Testimonials Panel', url: '/admin/testimonials', icon: 'fa-star', category: 'Content Management' },
+    { title: 'Studio Team Members', url: '/admin/team', icon: 'fa-user-tie', category: 'Content Management' },
+    { title: 'Appointment Booking Calendar', url: '/admin/consultations', icon: 'fa-calendar-alt', category: 'Inquiries' },
+    { title: 'Contact Mail Inquiries', url: '/admin/contacts', icon: 'fa-inbox', category: 'Inquiries' },
+    { title: 'My Profile Panel', url: '/admin/profile', icon: 'fa-id-badge', category: 'Personal Settings' },
+    { title: 'System Configurations Settings', url: '/admin/settings', icon: 'fa-sliders-h', category: 'System Configurations' }
+  ];
+
+  if (role === 'SuperAdmin') {
+    commands.push({ title: 'Role Matrix (Admin Sub-Accounts)', url: '/admin/admins', icon: 'fa-user-shield', category: 'Administration Security' });
+    commands.push({ title: 'System Audits Logs logs', url: '/admin/logs', icon: 'fa-list-alt', category: 'Administration Security' });
+    commands.push({ title: 'Media Explorer Cloud Explorer', url: '/admin/media', icon: 'fa-images', category: 'Administration Security' });
+    commands.push({ title: 'Recycle Bin Trash Bin', url: '/admin/trash', icon: 'fa-trash-alt', category: 'Administration Security' });
+  }
+
+  let spotlightHtml = `
+    <div class="spotlight-backdrop" id="spotlight-search-modal">
+      <div class="spotlight-card" style="width: 100%; max-width: 600px; background: rgba(31, 41, 55, 0.95); border: 1px solid rgba(197, 168, 128, 0.25); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; max-height: 480px; margin-top: 12vh;">
+        <div class="spotlight-search-wrapper" style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid rgba(229,231,235,0.1); gap: 12px;">
+          <i class="fas fa-search" style="color: var(--accent); font-size: 1.2rem;"></i>
+          <input type="text" class="spotlight-input" id="spotlight-search-input" placeholder="Type a page or command to navigate instantly..." autocomplete="off" style="flex-grow: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 1rem; font-family: inherit;">
+          <span class="spotlight-kbd-guide" style="font-size: 0.7rem; color: #9CA3AF; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">ESC</span>
+        </div>
+        <div class="spotlight-results" id="spotlight-search-results" style="overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 4px;"></div>
+      </div>
+    </div>
+  `;
+
+  $('body').append(spotlightHtml);
+  $('#spotlight-search-input').focus();
+
+  // Close modal on click outside card
+  $('#spotlight-search-modal').click(function (e) {
+    if (e.target === this) {
+      $(this).remove();
+    }
+  });
+
+  // ESC Key behavior
+  $(document).keydown(function (e) {
+    if (e.key === 'Escape') {
+      $('#spotlight-search-modal').remove();
+    }
+  });
+
+  function renderResults(filtered) {
+    const list = $('#spotlight-search-results');
+    list.empty();
+
+    if (filtered.length === 0) {
+      list.html('<div class="spotlight-empty" style="padding: 30px; text-align: center; color: #9CA3AF; font-size: 0.9rem;">No matching pages or actions found.</div>');
+      return;
+    }
+
+    filtered.forEach((cmd, idx) => {
+      const activeClass = idx === 0 ? 'selected' : '';
+      list.append(`
+        <div class="spotlight-result-item ${activeClass}" data-url="${cmd.url}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; color: #e5e7eb; cursor: pointer; transition: all 0.2s; font-size: 0.9rem;" onmouseover="$('.spotlight-result-item').removeClass('selected'); $(this).addClass('selected');">
+          <div class="spotlight-result-left" style="display: flex; align-items: center; gap: 12px;">
+            <i class="fas ${cmd.icon}" style="width: 20px; text-align: center; opacity: 0.8;"></i>
+            <span>${cmd.title}</span>
+          </div>
+          <span class="spotlight-category-tag" style="font-size: 0.7rem; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #9CA3AF;">${cmd.category}</span>
+        </div>
+      `);
+    });
+  }
+
+  renderResults(commands);
+
+  // Search input typing listener
+  let selectedIndex = 0;
+  $('#spotlight-search-input').on('input', function () {
+    const q = $(this).val().toLowerCase().trim();
+    const filtered = commands.filter(c => c.title.toLowerCase().includes(q) || c.category.toLowerCase().includes(q));
+    selectedIndex = 0;
+    renderResults(filtered);
+  });
+
+  // Arrow navigation and select key mapping
+  $('#spotlight-search-input').on('keydown', function (e) {
+    const items = $('.spotlight-result-item');
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      items.removeClass('selected');
+      selectedIndex = (selectedIndex + 1) % items.length;
+      $(items[selectedIndex]).addClass('selected');
+      items[selectedIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      items.removeClass('selected');
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      $(items[selectedIndex]).addClass('selected');
+      items[selectedIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const targetUrl = $(items[selectedIndex]).data('url');
+      if (targetUrl) {
+        window.location.href = targetUrl;
+      }
+    }
+  });
+
+  // Click list row selection
+  $(document).on('click', '.spotlight-result-item', function () {
+    const url = $(this).data('url');
+    if (url) {
+      window.location.href = url;
+    }
+  });
+}
+
+// --- Recycle Bin Trash Manager ---
+function initAdminTrash() {
+  loadTrashList();
+
+  $('#btn-refresh-trash').click(function (e) {
+    e.preventDefault();
+    loadTrashList();
+  });
+
+  // Restore action
+  $(document).on('click', '.restore-trash-btn', function (e) {
+    e.preventDefault();
+    const btn = this;
+    const type = $(btn).data('type');
+    const id = $(btn).data('id');
+    const nameText = $(btn).closest('tr').find('strong').first().text();
+
+    const targetSidebarHref = getSidebarLinkForType(type);
+    $(btn).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+    
+    animateFloatingGhost(btn, nameText, targetSidebarHref, true);
+
+    setTimeout(() => {
+      $.ajax({
+        url: `/api/trash/restore/${type}/${id}`,
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+        },
+        success: function (res) {
+          showToast('Resource restored successfully!');
+          loadTrashList();
+        },
+        error: function (err) {
+          $(btn).closest('tr').css({ opacity: 1, transform: 'none' });
+          $(btn).prop('disabled', false).html('<i class="fas fa-undo"></i> Restore');
+          alert(err.responseJSON?.message || 'Restore failed.');
+        }
+      });
+    }, 1350);
+  });
+
+  // Permanent Delete action
+  $(document).on('click', '.purge-trash-btn', function (e) {
+    e.preventDefault();
+    const btn = this;
+    const type = $(btn).data('type');
+    const id = $(btn).data('id');
+
+    if (confirm('Permanently purge this item from the database? This action is IRREVERSIBLE and will destroy any related images.')) {
+      $(btn).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+      
+      const row = $(btn).closest('tr');
+      row.addClass('row-highlight-red');
+      row.css({
+        transition: 'all 0.9s ease',
+        opacity: 0,
+        transform: 'translateX(-20px)'
+      });
+
+      setTimeout(() => {
+        $.ajax({
+          url: `/api/trash/permanent/${type}/${id}`,
+          method: 'DELETE',
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+          },
+          success: function (res) {
+            showToast('Resource permanently deleted!');
+            loadTrashList();
+          },
+          error: function (err) {
+            row.removeClass('row-highlight-red').css({ opacity: 1, transform: 'none' });
+            $(btn).prop('disabled', false).html('<i class="fas fa-trash-alt"></i> Purge');
+            alert(err.responseJSON?.message || 'Purge failed.');
+          }
+        });
+      }, 950);
+    }
+  });
+
+  function loadTrashList() {
+    const tbody = $('#trash-table-body');
+    tbody.html('<tr><td colspan="5" class="text-center" style="padding:30px; color:var(--text-gray);"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Fetching Recycle Bin items...</td></tr>');
+
+    $.ajax({
+      url: '/api/trash',
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+      },
+      success: function (res) {
+        if (res.success) {
+          let rows = '';
+          if (res.trashItems && res.trashItems.length > 0) {
+            res.trashItems.forEach(item => {
+              const formattedDate = new Date(item.deletedAt).toLocaleString();
+              rows += `
+                <tr>
+                  <td><span class="status-pill warning" style="font-weight:bold; font-size:0.75rem; text-transform:uppercase;">${item.typeName}</span></td>
+                  <td><strong>${item.title}</strong></td>
+                  <td>${formattedDate}</td>
+                  <td>
+                    <div style="font-size:0.85rem; color:var(--text-dark); font-weight:600;">${item.info || 'N/A'}</div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+                      <i class="fas fa-user-plus" style="width:14px; margin-right:4px;"></i>Created by: <strong>${item.submittedBy}</strong>
+                    </div>
+                    <div style="font-size:0.75rem; color:#e11d48; margin-top:2px;">
+                      <i class="fas fa-user-minus" style="width:14px; margin-right:4px;"></i>Deleted by: <strong>${item.deletedBy}</strong>
+                    </div>
+                  </td>
+                  <td style="text-align:right;">
+                    <div style="display:inline-flex; gap:8px;">
+                      <button class="icon-btn restore-trash-btn" data-type="${item.type}" data-id="${item.id}" title="Restore Item" style="background:#10b981; border-color:#10b981; color:#fff; display:inline-flex; align-items:center; gap:6px; padding:6px 12px; font-size:0.8rem; font-weight:600; border-radius:6px;"><i class="fas fa-undo"></i> Restore</button>
+                      <button class="icon-btn purge-trash-btn" data-type="${item.type}" data-id="${item.id}" title="Purge Permanently" style="background:#ef4444; border-color:#ef4444; color:#fff; display:inline-flex; align-items:center; gap:6px; padding:6px 12px; font-size:0.8rem; font-weight:600; border-radius:6px;"><i class="fas fa-trash-alt"></i> Purge</button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            });
+          } else {
+            rows = '<tr><td colspan="5" class="text-center" style="padding:40px; color:var(--text-gray); font-size:0.95rem;"><i class="fas fa-trash" style="font-size:24px; margin-bottom:10px; display:block; color:#ccc;"></i> Recycle Bin is empty</td></tr>';
+          }
+          tbody.html(rows);
+        }
+      },
+      error: function (err) {
+        tbody.html(`<tr><td colspan="5" class="text-center" style="padding:30px; color:var(--danger); font-weight:bold;">Failed to retrieve trash list: ${err.responseJSON?.message || 'Server error'}</td></tr>`);
+      }
+    });
+  }
+}
+

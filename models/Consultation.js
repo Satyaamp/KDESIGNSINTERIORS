@@ -59,6 +59,16 @@ const consultationSchema = new mongoose.Schema({
   },
   statusUpdatedAt: {
     type: Date
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date
+  },
+  deletedBy: {
+    type: String
   }
 }, {
   timestamps: true

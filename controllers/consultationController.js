@@ -175,7 +175,7 @@ const createConsultation = async (req, res) => {
 const getConsultations = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 10 } = req.query;
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
 
     if (status) {
       filter.status = status;
@@ -287,17 +287,11 @@ const deleteConsultation = async (req, res) => {
     if (!consultation) {
       return res.status(404).json({ success: false, message: 'Consultation request not found' });
     }
-    // Delete files from Cloudinary
-    if (consultation.floorPlan && consultation.floorPlan.public_id) {
-      await deleteImage(consultation.floorPlan.public_id);
-    }
-    if (consultation.images && consultation.images.length) {
-      for (const img of consultation.images) {
-        await deleteImage(img.public_id);
-      }
-    }
-
-    await consultation.deleteOne();
+    
+    consultation.isDeleted = true;
+    consultation.deletedAt = Date.now();
+    consultation.deletedBy = req.admin.username;
+    await consultation.save();
 
     // Record activity log
     const { recordLog } = require('../utils/logger');

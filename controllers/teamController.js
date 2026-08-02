@@ -7,7 +7,7 @@ const { uploadImage, deleteImage } = require('../utils/cloudinaryHelper');
 const getTeamMembers = async (req, res) => {
   try {
     const { search, page = 1, limit = 10, status } = req.query;
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     
     if (status) {
       filter.status = status;
@@ -171,11 +171,10 @@ const deleteTeamMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Team member not found' });
     }
     
-    if (teamMember.image && teamMember.image.public_id) {
-      await deleteImage(teamMember.image.public_id);
-    }
-    
-    await teamMember.deleteOne();
+    teamMember.isDeleted = true;
+    teamMember.deletedAt = Date.now();
+    teamMember.deletedBy = req.admin.username;
+    await teamMember.save();
 
     // Record delete team member log
     const { recordLog } = require('../utils/logger');

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recycle Bin | Admin Panel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar"></aside>
+
+  <!-- Main Content -->
+  <div class="admin-layout">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="header-title">
+        <h1>Recycle Bin</h1>
+      </div>
+      <div class="header-user">
+        <i class="fas fa-user-circle"></i>
+        <span id="admin-user-display">Admin</span>
+      </div>
+    </header>
+
+    <!-- Container -->
+    <main class="admin-container">
+      <div class="data-card">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>Soft-Deleted Items Queue</h2>
+          <button id="btn-refresh-trash" class="btn-admin btn-admin-secondary" style="padding: 8px 16px;"><i class="fas fa-sync-alt"></i> Refresh Trash</button>
+        </div>
+
+        <div class="admin-table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Resource Type</th>
+                <th>Original Name / Info</th>
+                <th>Deleted On</th>
+                <th>Additional Info</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trash-table-body">
+              <tr>
+                <td colspan="5" class="text-center" style="padding:30px; color:var(--text-gray);">
+                  <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Loading deleted items...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/js/admin.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Ensure only SuperAdmin has access
+      const user = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      if (user.role !== 'SuperAdmin') {
+        window.location.href = '/admin/dashboard';
+        return;
+      }
+      
+      initTrashPage();
+    });
+  </script>
+</body>
+</html>

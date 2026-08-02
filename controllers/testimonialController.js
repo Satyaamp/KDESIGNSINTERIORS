@@ -7,7 +7,7 @@ const { uploadImage, deleteImage } = require('../utils/cloudinaryHelper');
 const getTestimonials = async (req, res) => {
   try {
     const { search, page = 1, limit = 10, status } = req.query;
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     
     if (status) {
       filter.status = status;
@@ -169,11 +169,10 @@ const deleteTestimonial = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Testimonial not found' });
     }
     
-    if (testimonial.image && testimonial.image.public_id) {
-      await deleteImage(testimonial.image.public_id);
-    }
-    
-    await testimonial.deleteOne();
+    testimonial.isDeleted = true;
+    testimonial.deletedAt = Date.now();
+    testimonial.deletedBy = req.admin.username;
+    await testimonial.save();
 
     // Record delete testimonial log
     const { recordLog } = require('../utils/logger');

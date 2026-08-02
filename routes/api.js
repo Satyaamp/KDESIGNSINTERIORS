@@ -16,6 +16,9 @@ const contactController = require('../controllers/contactController');
 const settingController = require('../controllers/settingController');
 const cityController = require('../controllers/cityController');
 const logController = require('../controllers/logController');
+const moderateController = require('../controllers/moderateController');
+const trashController = require('../controllers/trashController');
+const categoryTransferController = require('../controllers/categoryTransferController');
 
 // --- AUTH / USER PROFILE ROUTES ---
 router.post('/auth/login', authController.login);
@@ -66,6 +69,10 @@ router.post('/blog-categories', protect, checkPermission('categories_add'), blog
 router.put('/blog-categories/:id', protect, checkPermission('categories_edit'), blogController.updateBlogCategory);
 router.delete('/blog-categories/:id', protect, checkPermission('categories_delete'), blogController.deleteBlogCategory);
 
+// --- CATEGORY TRANSFER & CONVERSION ROUTES ---
+router.get('/categories/check-linked', protect, categoryTransferController.checkLinkedItems);
+router.post('/categories/transfer', protect, categoryTransferController.transferCategory);
+
 // --- BLOG ROUTES ---
 router.get('/blogs', blogController.getBlogs);
 router.get('/blogs/slug/:slug', blogController.getBlogBySlug);
@@ -108,5 +115,13 @@ router.get('/cities', cityController.getCities);
 router.post('/cities', protect, checkPermission('categories_add'), cityController.createCity);
 router.put('/cities/:id', protect, checkPermission('categories_edit'), cityController.updateCity);
 router.delete('/cities/:id', protect, checkPermission('categories_delete'), cityController.deleteCity);
+
+// --- CONTENT MODERATION ROUTE (SuperAdmin Only) ---
+router.put('/moderate/:resource/:id', protect, moderateController.moderateResource);
+
+// --- RECYCLE BIN / TRASH ROUTES (SuperAdmin Only) ---
+router.get('/trash', protect, trashController.getTrashItems);
+router.post('/trash/restore/:type/:id', protect, trashController.restoreTrashItem);
+router.delete('/trash/permanent/:type/:id', protect, trashController.purgeTrashItem);
 
 module.exports = router;

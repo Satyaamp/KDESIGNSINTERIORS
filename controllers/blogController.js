@@ -94,12 +94,20 @@ const deleteBlogCategory = async (req, res) => {
 const getBlogs = async (req, res) => {
   try {
     const { search, category, page = 1, limit = 10, status } = req.query;
-    const filter = {};
+    const filter = { isDeleted: { $ne: true } };
     
     if (status) {
       filter.status = status;
     } else if (req.query.admin !== 'true') {
       filter.status = 'Active';
+    }
+
+    if (req.query.submittedByRole) {
+      filter.submittedByRole = req.query.submittedByRole;
+    }
+
+    if (req.query.admin !== 'true') {
+      filter.approvalStatus = 'Approved';
     }
     
     if (category) {
@@ -144,8 +152,8 @@ const getBlogs = async (req, res) => {
 // @access  Public
 const getBlogBySlug = async (req, res) => {
   try {
-    const blog = await Blog.findOne({ slug: req.params.slug }).populate('category', 'name slug');
-    if (!blog) {
+    const blog = await Blog.findOne({ slug: req.params.slug, isDeleted: { $ne: true } }).populate('category', 'name slug');
+    if (!blog || (req.query.admin !== 'true' && blog.approvalStatus !== 'Approved')) {
       return res.status(404).json({ success: false, message: 'Blog not found' });
     }
     res.json({ success: true, blog });
@@ -153,6 +161,7 @@ const getBlogBySlug = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // @desc    Create new blog post
 // @route   POST /api/blogs
@@ -179,6 +188,10 @@ const createBlog = async (req, res) => {
     const primaryImage = imageUploads.length > 0 ? imageUploads[0] : { url: '', public_id: '' };
     const slug = await makeUniqueSlug(Blog, title);
     
+    const isSuperAdmin = req.admin && req.admin.role === 'SuperAdmin';
+    const approvalStatus = isSuperAdmin ? 'Approved' : 'Pending Approval';
+    const submittedBy = req.admin ? req.admin.username : 'System';
+    
     const blog = await Blog.create({
       title,
       slug,
@@ -187,6 +200,9 @@ const createBlog = async (req, res) => {
       images: imageUploads,
       featuredImage: primaryImage,
       status: status || 'Active',
+      approvalStatus,
+      submittedBy,
+      submittedByRole: req.admin ? req.admin.role : 'SuperAdmin',
       seo: {
         metaTitle: metaTitle || title,
         metaDescription: metaDescription || content.substring(0, 160).replace(/<[^>]*>/g, ''),
@@ -338,18 +354,10 @@ const deleteBlog = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Blog not found' });
     }
     
-    // Clean up all blog images from Cloudinary
-    if (blog.images && blog.images.length > 0) {
-      for (const img of blog.images) {
-        if (img.public_id) {
-          await deleteImage(img.public_id);
-        }
-      }
-    } else if (blog.featuredImage && blog.featuredImage.public_id) {
-      await deleteImage(blog.featuredImage.public_id);
-    }
-    
-    await blog.deleteOne();
+    blog.isDeleted = true;
+    blog.deletedAt = Date.now();
+    blog.deletedBy = req.admin.username;
+    await blog.save();
 
     // Record delete blog log
     const { recordLog } = require('../utils/logger');

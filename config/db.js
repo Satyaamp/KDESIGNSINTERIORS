@@ -9,7 +9,8 @@ const connectDB = async () => {
       useUnifiedTopology: true,
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
-    
+
+
     // Seed default admin if no admins exist
     // Require model dynamically to avoid circular dependencies
     const Admin = require('../models/Admin');

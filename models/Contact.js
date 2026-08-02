@@ -38,6 +38,16 @@ const contactSchema = new mongoose.Schema({
   adminNotes: {
     type: String,
     default: ''
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date
+  },
+  deletedBy: {
+    type: String
   }
 }, {
   timestamps: true

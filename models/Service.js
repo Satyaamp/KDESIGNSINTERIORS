@@ -33,6 +33,29 @@ const serviceSchema = new mongoose.Schema({
     metaTitle: { type: String, default: '' },
     metaDescription: { type: String, default: '' },
     keywords: { type: String, default: '' }
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date
+  },
+  deletedBy: {
+    type: String
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['Approved', 'Pending Approval', 'Rejected'],
+    default: 'Approved'
+  },
+  submittedBy: {
+    type: String,
+    default: 'SuperAdmin'
+  },
+  submittedByRole: {
+    type: String,
+    default: 'SuperAdmin'
   }
 }, {
   timestamps: true

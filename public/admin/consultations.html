@@ -28,11 +28,21 @@
     <!-- Container -->
     <main class="admin-container">
       <div class="data-card">
-        <div class="card-header">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <h2>Appointment Requests</h2>
+          <div class="card-actions">
+            <div class="view-toggle-group" style="display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: #fff;">
+              <button class="btn-toggle active" id="btn-view-table" style="border: none; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: var(--transition);">
+                <i class="fas fa-list"></i> List View
+              </button>
+              <button class="btn-toggle" id="btn-view-calendar" style="border: none; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: var(--transition); border-left: 1px solid var(--border);">
+                <i class="fas fa-calendar-alt"></i> Calendar View
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="admin-table-container">
+        <div class="admin-table-container" id="consultations-list-view">
           <table class="admin-table">
             <thead>
               <tr>
@@ -49,6 +59,10 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div id="consultations-calendar-view" style="display: none; padding: 20px;">
+          <!-- Custom Premium Month Grid Calendar will be rendered here dynamically -->
         </div>
       </div>
     </main>

@@ -11,6 +11,17 @@ $(document).ready(function () {
     }
   }
 
+  // Global helper to extract plain text and truncate rich content excerpts
+  window.getCleanExcerpt = function(htmlStr, maxLength = 120) {
+    if (!htmlStr) return '';
+    let cleanText = htmlStr.replace(/<[^>]*>/g, ' ');
+    cleanText = cleanText.replace(/\s+/g, ' ').trim();
+    if (cleanText.length <= maxLength) {
+      return cleanText;
+    }
+    return cleanText.substring(0, maxLength) + '...';
+  };
+
   // Inject header dynamically
   if ($('header').length) {
     $('header').addClass('main-header');
@@ -193,7 +204,7 @@ function initHomePage() {
           <div class="service-card" ${bgStyle}>
             <div class="service-icon"><i class="fas fa-home"></i></div>
             <h3>${service.title}</h3>
-            <p>${service.description}</p>
+            <p>${getCleanExcerpt(service.description, 140)}</p>
             <a href="/service-details?slug=${service.slug}" target="_blank" class="service-link">Read More <i class="fas fa-arrow-right"></i></a>
           </div>
         `;
@@ -270,7 +281,7 @@ function initHomePage() {
                 <span><i class="far fa-folder"></i> ${blog.category ? blog.category.name : 'General'}</span>
               </div>
               <h3><a href="/blog-details?slug=${blog.slug}">${blog.title}</a></h3>
-              <p class="blog-excerpt">${blog.content.replace(/<[^>]*>/g, '')}</p>
+              <p class="blog-excerpt">${getCleanExcerpt(blog.content, 140)}</p>
               <a href="/blog-details?slug=${blog.slug}" class="service-link">Read More <i class="fas fa-arrow-right"></i></a>
             </div>
           </div>
@@ -371,7 +382,7 @@ function initServicesPage() {
           <div class="service-card" ${bgStyle}>
             <div class="service-icon"><i class="fas fa-home"></i></div>
             <h3>${service.title}</h3>
-            <p>${service.description}</p>
+            <p>${getCleanExcerpt(service.description, 140)}</p>
             <a href="/service-details?slug=${service.slug}" target="_blank" class="service-link">Read More <i class="fas fa-arrow-right"></i></a>
           </div>
         `;
@@ -648,7 +659,7 @@ function loadBlogsList(page = 1, category = 'all') {
                 <span><i class="far fa-folder"></i> ${blog.category ? blog.category.name : 'General'}</span>
               </div>
               <h3><a href="/blog-details?slug=${blog.slug}">${blog.title}</a></h3>
-              <p class="blog-excerpt">${blog.content.replace(/<[^>]*>/g, '')}</p>
+              <p class="blog-excerpt">${getCleanExcerpt(blog.content, 140)}</p>
               <a href="/blog-details?slug=${blog.slug}" class="service-link">Read Article <i class="fas fa-arrow-right"></i></a>
             </div>
           </div>
@@ -964,11 +975,8 @@ function initServiceDetailsPage() {
       $('.service-title-placeholder').text(service.title);
       $('#service-title').text(service.title);
 
-      // Split description by newlines and wrap in paragraphs for clean alignment
-      const formattedDescription = service.description
-        ? service.description.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p.trim()}</p>`).join('')
-        : '<p>No description available.</p>';
-      $('#service-description-body').html(formattedDescription);
+      // Directly render the formatted description from the rich editor
+      $('#service-description-body').html(service.description || '<p>No description available.</p>');
 
       // Extract all gallery images, prioritizing the new array field
       const images = [];

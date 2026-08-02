@@ -3,88 +3,64 @@
   <span>K.DESIGNS Panel</span>
 </div>
 <ul class="sidebar-menu">
-  <li>
+  <li class="nav-item-single">
     <a href="/admin/dashboard">
       <i class="fas fa-chart-line"></i> Dashboard
     </a>
   </li>
 
-  <li>
-    <a href="/admin/services">
-      <i class="fas fa-tools"></i> Services
-    </a>
+  <!-- 1. Content Management Category -->
+  <li class="menu-category">
+    <div class="category-header">
+      <span><i class="fas fa-folder-open"></i> Management</span>
+      <i class="fas fa-chevron-down chevron"></i>
+    </div>
+    <ul class="category-sub-menu">
+      <li><a href="/admin/services"><i class="fas fa-tools"></i> Services</a></li>
+      <li><a href="/admin/projects"><i class="fas fa-building"></i> Projects</a></li>
+      <li><a href="/admin/categories"><i class="fas fa-folder-tree"></i> Master</a></li>
+      <li><a href="/admin/blogs"><i class="fas fa-newspaper"></i> Blogs</a></li>
+      <li><a href="/admin/testimonials"><i class="fas fa-star"></i> Testimonials</a></li>
+      <li><a href="/admin/team"><i class="fas fa-user-tie"></i> Team Members</a></li>
+    </ul>
   </li>
 
-  <li>
-    <a href="/admin/projects">
-      <i class="fas fa-building"></i> Projects
-    </a>
+  <!-- 2. Client Inquiries Category -->
+  <li class="menu-category">
+    <div class="category-header">
+      <span><i class="fas fa-paper-plane"></i> Inquiries</span>
+      <i class="fas fa-chevron-down chevron"></i>
+    </div>
+    <ul class="category-sub-menu">
+      <li><a href="/admin/consultations"><i class="fas fa-calendar-alt"></i> Consultations</a></li>
+      <li><a href="/admin/contacts"><i class="fas fa-inbox"></i> Contact Inquiries</a></li>
+    </ul>
   </li>
 
-  <li>
-    <a href="/admin/categories">
-      <i class="fas fa-folder-tree"></i> Master
-    </a>
+  <!-- 3. Reports & Auditing Category -->
+  <li class="menu-category">
+    <div class="category-header">
+      <span><i class="fas fa-chart-bar"></i> Reports & System</span>
+      <i class="fas fa-chevron-down chevron"></i>
+    </div>
+    <ul class="category-sub-menu">
+      <li class="super-only"><a href="/admin/media"><i class="fas fa-images"></i> Media Explorer</a></li>
+      <li class="logs-only"><a href="/admin/logs"><i class="fas fa-list-alt"></i> System Logs</a></li>
+    </ul>
   </li>
 
-  <li>
-    <a href="/admin/blogs">
-      <i class="fas fa-newspaper"></i> Blogs
-    </a>
-  </li>
-
-  <li>
-    <a href="/admin/testimonials">
-      <i class="fas fa-star"></i> Testimonials
-    </a>
-  </li>
-
-  <li>
-    <a href="/admin/team">
-      <i class="fas fa-user-tie"></i> Team Members
-    </a>
-  </li>
-
-  <li>
-    <a href="/admin/consultations">
-      <i class="fas fa-calendar-alt"></i> Consultation Bookings
-    </a>
-  </li>
-
-  <li>
-    <a href="/admin/contacts">
-      <i class="fas fa-inbox"></i> Contact Inquiries
-    </a>
-  </li>
-
-  <li class="super-only">
-    <a href="/admin/admins">
-      <i class="fas fa-user-shield"></i> Role Matrix
-    </a>
-  </li>
-
-  <li>
-    <a href="/admin/profile">
-      <i class="fas fa-id-badge"></i> My Profile
-    </a>
-  </li>
-
-  <li>
-    <a href="/admin/settings">
-      <i class="fas fa-sliders-h"></i> System Settings
-    </a>
-  </li>
-
-  <li class="super-only">
-    <a href="/admin/media">
-      <i class="fas fa-images"></i> Media Explorer
-    </a>
-  </li>
-
-  <li class="logs-only">
-    <a href="/admin/logs">
-      <i class="fas fa-list-alt"></i> System Logs
-    </a>
+  <!-- 4. Administration Category -->
+  <li class="menu-category">
+    <div class="category-header">
+      <span><i class="fas fa-user-cog"></i> Administration</span>
+      <i class="fas fa-chevron-down chevron"></i>
+    </div>
+    <ul class="category-sub-menu">
+      <li class="super-only"><a href="/admin/admins"><i class="fas fa-user-shield"></i> Role Matrix</a></li>
+      <li><a href="/admin/profile"><i class="fas fa-id-badge"></i> My Profile</a></li>
+      <li><a href="/admin/settings"><i class="fas fa-sliders-h"></i> System Settings</a></li>
+      <li class="super-only"><a href="/admin/trash"><i class="fas fa-trash-alt"></i> Recycle Bin</a></li>
+    </ul>
   </li>
 
   <div class="sidebar-footer">

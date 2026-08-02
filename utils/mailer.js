@@ -20,8 +20,9 @@ if (isMailConfigured) {
       pass: process.env.SMTP_PASS
     }
   });
-  console.log('Nodemailer SMTP Transporter configured.');
+  console.log(`Nodemailer SMTP Transporter configured...`);
 } else {
+
   console.log('SMTP credentials missing. Emails will be logged to console in development mode.');
 }
 

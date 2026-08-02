@@ -35,12 +35,20 @@ const updateSettings = async (req, res) => {
       youtube,
       defaultMetaTitle,
       defaultMetaDescription,
-      defaultKeywords
+      defaultKeywords,
+      deleteLogo
     } = req.body;
 
     let settings = await Settings.findOne();
     if (!settings) {
       settings = await Settings.create({});
+    }
+
+    if (deleteLogo === 'true' || deleteLogo === true) {
+      if (settings.logo && settings.logo.public_id) {
+        await deleteImage(settings.logo.public_id);
+      }
+      settings.logo = { url: '', public_id: '' };
     }
 
     if (siteName) settings.siteName = siteName;
